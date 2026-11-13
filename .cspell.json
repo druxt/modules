@@ -1,0 +1,22 @@
+{
+  "files": ["**/*.{js,cjs,mjs,json,jsonc,md,yml,yaml}"],
+  "dictionaryDefinitions": [
+    {
+      "name": "project-words",
+      "path": "./.cspell-project-words.txt"
+    }
+  ],
+  "dictionaries": ["project-words", "bash", "misc", "node", "softwareTerms"],
+  "ignorePaths": [
+    ".git/",
+    "node_modules/",
+    "**/node_modules/",
+    "coverage/",
+    "reports/",
+    "*.lock",
+    "package-lock.json",
+    "*.svg"
+  ],
+  "useGitignore": true,
+  "words": []
+}

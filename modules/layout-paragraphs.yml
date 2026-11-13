@@ -1,0 +1,16 @@
+name: layout-paragraphs
+repo: druxt-contrib/druxt-layout-paragraphs
+category: site-and-layout
+status: stable
+icon: layout-paragraphs.svg
+drupal:
+  - name: layout_paragraphs
+    label: Layout Paragraphs
+  - name: paragraphs
+    label: Paragraphs
+type: contrib
+archived: false
+description: Layout Paragraphs module for Druxt
+npm: druxt-layout-paragraphs
+compatibility:
+  druxt: unknown

@@ -1,0 +1,19 @@
+node_modules/
+
+# Logs and diagnostics
+logs
+*.log
+npm-debug.log*
+report.[0-9]*.[0-9]*.[0-9]*.[0-9]*.json
+
+# Tool caches
+.npm/
+.eslintcache
+
+# Test and lint output
+coverage/
+reports/
+
+# Local environment
+.env
+.env.test

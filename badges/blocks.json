@@ -1,0 +1,7 @@
+{
+  "schemaVersion": 1,
+  "label": "status",
+  "message": "stable",
+  "color": "00a4d3",
+  "cacheSeconds": 3600
+}

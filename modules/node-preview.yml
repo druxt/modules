@@ -1,0 +1,17 @@
+name: node-preview
+repo: druxt-contrib/druxt-node-preview
+category: authoring-and-preview
+status: stable
+icon: node-preview.svg
+drupal:
+  - name: jsonapi_node_preview
+    label: 'JSON:API Node Preview'
+  - name: consumer_node_preview
+    label: Consumer Node Preview
+type: contrib
+archived: false
+description: Renders Drupal node previews in a Druxt frontend, fed by JSON:API Node Preview
+  and Consumer Node Preview.
+npm: "@druxt-contrib/node-preview"
+compatibility:
+  druxt: ">=0.25.0 <1"

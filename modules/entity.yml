@@ -1,0 +1,17 @@
+name: entity
+repo: druxt/druxt.js
+path: packages/entity
+category: content-and-entities
+status: stable
+icon: entity.svg
+drupal:
+  - name: jsonapi
+    label: 'JSON:API'
+  - name: field_ui
+    label: Field UI
+type: official
+archived: false
+description: Drupal Display Mode powered Entity, Form and Field Druxt components.
+npm: druxt-entity
+compatibility:
+  druxt: ^0.25.1

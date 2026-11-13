@@ -1,0 +1,10 @@
+node_modules/
+coverage/
+reports/
+package-lock.json
+
+# Pipeline definitions are owned by yamllint, not prettier. The two disagree on
+# comment spacing, and letting both format these files means every run of one
+# undoes the other.
+.gitlab-ci.yml
+.github/workflows/

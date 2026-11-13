@@ -1,0 +1,13 @@
+name: ckeditor
+repo: druxt-contrib/druxt-ckeditor
+category: authoring-and-preview
+status: unreleased
+icon: ckeditor.svg
+drupal:
+  - name: ckeditor5
+    label: 'CKEditor 5'
+type: contrib
+archived: false
+description: Mounts the CKEditor 5 build Drupal ships in a Druxt frontend.
+compatibility:
+  druxt: unknown

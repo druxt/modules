@@ -1,0 +1,18 @@
+name: druxt
+repo: druxt/druxt.js
+path: packages/druxt
+category: core
+status: stable
+icon: druxt.svg
+drupal:
+  - name: druxt
+    label: Druxt
+  - name: jsonapi
+    label: 'JSON:API'
+type: official
+archived: false
+description: The Fully Decoupled Drupal Framework for Nuxt.js.
+npm: druxt
+compatibility:
+  druxt: unknown
+website: https://druxtjs.org

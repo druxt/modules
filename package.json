@@ -1,0 +1,43 @@
+{
+  "name": "@druxt/modules-registry",
+  "private": true,
+  "description": "The Druxt module registry: one YAML file per module, compiled to modules.json",
+  "license": "MIT",
+  "type": "module",
+  "engines": {
+    "node": ">=22"
+  },
+  "packageManager": "npm@10.9.2",
+  "scripts": {
+    "build": "node scripts/build.mjs",
+    "build:check": "node scripts/build.mjs --check",
+    "hooks:install": "git config core.hooksPath .githooks",
+    "lint": "npm run lint:js && npm run lint:format && npm run lint:md && npm run lint:cspell && npm run lint:private && npm run lint:attribution",
+    "lint:attribution": "bash .gitlab/scripts/check-attribution.sh",
+    "lint:commit": "commitlint",
+    "lint:cspell": "cspell lint --no-progress --no-must-find-files --gitignore --dot \"**/*.{js,cjs,mjs,json,jsonc,md,yml,yaml}\"",
+    "lint:format": "prettier --check \"**/*.{js,cjs,mjs,json,jsonc,md}\"",
+    "lint:format:fix": "prettier --write \"**/*.{js,cjs,mjs,json,jsonc,md}\"",
+    "lint:js": "eslint --ext .js,.cjs,.mjs scripts test",
+    "lint:md": "markdownlint-cli2 \"**/*.md\"",
+    "lint:private": "node scripts/lint-private-refs.mjs",
+    "sync": "node scripts/sync.mjs",
+    "sync:check": "node scripts/sync.mjs --check",
+    "test": "node --test \"test/*.test.mjs\"",
+    "validate": "node scripts/validate.mjs"
+  },
+  "devDependencies": {
+    "@commitlint/cli": "19.6.1",
+    "@commitlint/config-conventional": "19.6.0",
+    "cspell": "8.17.1",
+    "eslint": "8.57.1",
+    "eslint-config-prettier": "9.1.0",
+    "markdownlint-cli2": "0.17.1",
+    "prettier": "3.4.2"
+  },
+  "dependencies": {
+    "ajv": "8.17.1",
+    "ajv-formats": "3.0.1",
+    "yaml": "2.7.0"
+  }
+}
