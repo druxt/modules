@@ -1,9 +1,9 @@
 # Add a term here rather than switching the check off for a file.
 # Words this project uses that the standard dictionaries do not carry.
-ACMRD
+ACMD
 actionlint
-autobuild
 Autobuild
+autobuild
 automerge
 behaviour
 bookworm
@@ -21,8 +21,8 @@ dbaeumer
 DDEV
 devcontainer
 devcontainers
-Druxt
 druxt
+Druxt
 druxtjs
 esbenp
 esbuild
@@ -52,8 +52,8 @@ markdownlint
 mise
 networkidle
 nproc
-Nuxt
 nuxt
+Nuxt
 nvm
 nvmrc
 opcache

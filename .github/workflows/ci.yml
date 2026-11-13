@@ -168,13 +168,19 @@ jobs:
 
       # Added, modified, renamed or deleted: a rename is two entries and both
       # want reviewing, and a deletion is reported rather than skipped.
+      #
+      # --no-renames is what makes that true. With rename detection on, git
+      # reports a pure rename as one entry naming only the new path, so the
+      # listing the rename removed would never be reviewed. Turning it off
+      # makes the pair an addition and a deletion, which is what wants
+      # reviewing, and leaves no R for the filter to match.
       - name: Find the listings this pull request touches
         id: changed
         env:
           BASE: ${{ github.event.pull_request.base.sha }}
           HEAD: ${{ github.event.pull_request.head.sha }}
         run: |
-          keys=$(git diff --name-only --diff-filter=ACMRD "$BASE" "$HEAD" -- 'modules/*.yml' \
+          keys=$(git diff --no-renames --name-only --diff-filter=ACMD "$BASE" "$HEAD" -- 'modules/*.yml' \
             | xargs -r -n1 basename \
             | sed 's/\.yml$//' \
             | sort -u \
@@ -186,9 +192,18 @@ jobs:
         if: steps.changed.outputs.keys != ''
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # Through the environment rather than interpolated into the script.
+          # The keys come from filenames in the pull request and nothing
+          # constrains those to a safe character set, so a branch adding
+          # modules/x$(...).yml would otherwise have it run here.
+          KEYS: ${{ steps.changed.outputs.keys }}
         run: |
-          npm run --silent review:listing -- ${{ steps.changed.outputs.keys }} \
-            | tee listing-review.md
+          # The runner's default shell is bash -e, which does not set pipefail,
+          # so without this the step's status is tee's and the job could not go
+          # red on a listing that must not be merged as written.
+          set -o pipefail
+          # shellcheck disable=SC2086  # deliberately word-split into arguments
+          npm run --silent review:listing -- $KEYS | tee listing-review.md
 
       # One comment per pull request, rewritten on each push, so the thread
       # does not fill with stale tables as a contributor fixes things.
@@ -199,8 +214,18 @@ jobs:
           PR: ${{ github.event.pull_request.number }}
         run: |
           test -s listing-review.md || exit 0
-          id=$(gh api "repos/${{ github.repository }}/issues/$PR/comments" \
-            --jq 'map(select(.body | startswith("## Listing review"))) | .[0].id // empty')
+          # gh does not paginate api calls on its own, and this endpoint serves
+          # a page of thirty oldest first. On a pull request with more comments
+          # than that before the first listing run, the existing comment would
+          # never be in the page read and a new one would be posted on every
+          # push. --paginate reads them all and the matching ids come back one
+          # per line, so the first line is the comment to rewrite. The first
+          # line is taken by expansion rather than by piping into head, which
+          # would leave gh writing into a closed pipe.
+          ids=$(gh api --paginate \
+            "repos/${{ github.repository }}/issues/$PR/comments?per_page=100" \
+            --jq '.[] | select(.body | startswith("## Listing review")) | .id')
+          id=${ids%%$'\n'*}
           if [ -n "$id" ]; then
             gh api -X PATCH "repos/${{ github.repository }}/issues/comments/$id" \
               -F body=@listing-review.md >/dev/null

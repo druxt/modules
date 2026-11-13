@@ -18,7 +18,12 @@ import { argv } from 'node:process'
 import { fileURLToPath } from 'node:url'
 
 import { liveSources } from './sources.mjs'
-import { derivedType, readModules, readSchema } from './registry.mjs'
+import {
+  derivedType,
+  holdsMapping,
+  readModules,
+  readSchema,
+} from './registry.mjs'
 import { resolve } from './sync.mjs'
 
 /**
@@ -79,61 +84,86 @@ export function report(rows) {
   return lines.join('\n')
 }
 
+/**
+ * One listing's row, or the reason it cannot be merged as written.
+ *
+ * Everything that stops a file being a listing at all is settled before a
+ * field is read off it. An empty file parses to null and a list parses to an
+ * array, neither with a parse error, and resolve() reads .repo: null throws
+ * and takes the whole report down with it, while an array yields undefined
+ * and comes back as a repository the token cannot read, which sends the
+ * contributor looking at their permissions instead of their file.
+ */
+export async function reviewEntry(entry, schema, sources) {
+  if (entry.parseError || entry.extensionError || !holdsMapping(entry)) {
+    return {
+      key: entry.key,
+      error: entry.parseError
+        ? `It does not parse as YAML: ${entry.parseError}`
+        : entry.extensionError
+          ? 'It is not a .yml file.'
+          : 'It does not hold a mapping of fields.',
+    }
+  }
+
+  const { values, notes = [], error } = await resolve(entry, schema, sources)
+  if (error) return { key: entry.key, error }
+
+  return {
+    key: entry.key,
+    claimed: entry.data,
+    found: {
+      repoUrl: `https://github.com/${entry.data.repo}`,
+      type: derivedType(entry.data.repo, schema),
+      npm: values.npm,
+      archived: Boolean(values.archived),
+      druxt: values.compatibility?.druxt ?? 'unknown',
+    },
+    findings: statusFindings(entry.data, values, published(entry.data)),
+    notes,
+  }
+}
+
+/** Whether npm already holds a name for this listing. */
+const published = (data) => Boolean(data.npm)
+
+/**
+ * Every requested key reviewed, with the ones that have no file separated out.
+ * A removed listing is a legitimate change, so a key with no file is reported
+ * rather than treated as an error. Takes its entries and sources rather than
+ * reading them, so the judgements can be tested without the network.
+ */
+export async function reviewListings(keys, entries, schema, sources) {
+  const wanted = keys
+    .map((key) => entries.find((entry) => entry.key === key))
+    .filter(Boolean)
+  const missing = keys.filter(
+    (key) => !entries.some((entry) => entry.key === key)
+  )
+
+  const rows = []
+  for (const entry of wanted) {
+    rows.push(await reviewEntry(entry, schema, sources))
+  }
+
+  return { rows, missing, blocked: rows.filter((row) => row.error).length }
+}
+
 async function main(keys) {
   if (!keys.length) {
     console.log('No registry files changed, so there is no listing to review.')
     return
   }
   const [schema, entries] = await Promise.all([readSchema(), readModules()])
-  const sources = liveSources()
-
-  const wanted = keys
-    .map((key) => entries.find((entry) => entry.key === key))
-    .filter(Boolean)
-
-  const missing = keys.filter(
-    (key) => !entries.some((entry) => entry.key === key)
+  const { rows, missing, blocked } = await reviewListings(
+    keys,
+    entries,
+    schema,
+    liveSources()
   )
-  // A removed listing is a legitimate change, so a key with no file is
-  // reported rather than treated as an error.
+
   for (const key of missing) {
     console.log(`\`${key}\` is no longer in modules/, so it was not reviewed.`)
-  }
-
-  const rows = []
-  let blocked = 0
-
-  for (const entry of wanted) {
-    if (entry.parseError || entry.extensionError) {
-      rows.push({
-        key: entry.key,
-        error: entry.parseError
-          ? `It does not parse as YAML: ${entry.parseError}`
-          : 'It is not a .yml file.',
-      })
-      blocked += 1
-      continue
-    }
-    const { values, notes = [], error } = await resolve(entry, schema, sources)
-    if (error) {
-      rows.push({ key: entry.key, error })
-      blocked += 1
-      continue
-    }
-    const published = Boolean(entry.data.npm)
-    rows.push({
-      key: entry.key,
-      claimed: entry.data,
-      found: {
-        repoUrl: `https://github.com/${entry.data.repo}`,
-        type: derivedType(entry.data.repo, schema),
-        npm: values.npm,
-        archived: Boolean(values.archived),
-        druxt: values.compatibility?.druxt ?? 'unknown',
-      },
-      findings: statusFindings(entry.data, values, published),
-      notes,
-    })
   }
 
   console.log(report(rows))

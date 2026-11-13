@@ -6,8 +6,12 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
 
+import { readFile } from 'node:fs/promises'
+
 import {
+  categories,
   derivedType,
+  holdsMapping,
   readIcons,
   readModules,
   readSchema,
@@ -288,4 +292,59 @@ test('readModules reports every name in the directory, not just the .yml ones', 
       ['views.yaml', true],
     ]
   )
+})
+
+// Three documents have now claimed something about the registry that the code
+// disagreed with: a sync field, an accepted field, and this count. Prose does
+// not run, so each claim it makes gets pinned by something that does.
+test('no document states a category count the schema disagrees with', async () => {
+  const count = categories(schema).length
+  const numbers = {
+    three: 3,
+    four: 4,
+    five: 5,
+    six: 6,
+    seven: 7,
+    eight: 8,
+    nine: 9,
+    ten: 10,
+  }
+  const files = [
+    'README.md',
+    'CONTRIBUTING.md',
+    '.github/pull_request_template.md',
+  ]
+  const wrong = []
+
+  for (const file of files) {
+    const text = await readFile(new URL(`../${file}`, import.meta.url), 'utf8')
+    for (const line of text.split('\n')) {
+      if (!/category|categories/i.test(line)) continue
+      for (const [word, n] of Object.entries(numbers)) {
+        if (n !== count && new RegExp(`\\b${word}\\b`, 'i').test(line)) {
+          wrong.push(`${file}: ${line.trim()}`)
+        }
+      }
+    }
+  }
+
+  assert.deepEqual(wrong, [], `the schema enumerates ${count} categories`)
+})
+
+// An empty file parses to null and a list parses to an array, neither with a
+// parse error, so every consumer of readModules shares one test for it.
+test('a file that parses to something other than a mapping is refused', () => {
+  for (const data of [null, 'a string', 42, ['a', 'list'], true]) {
+    assert.equal(
+      holdsMapping({ data }),
+      false,
+      `${JSON.stringify(data)} is not a mapping`
+    )
+    const { errors } = run(entry(data))
+    assert.ok(
+      errors.some((e) => e.includes('does not hold a mapping of fields')),
+      `${JSON.stringify(data)} should be refused as a non-mapping`
+    )
+  }
+  assert.equal(holdsMapping({ data: valid() }), true)
 })

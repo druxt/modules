@@ -56,11 +56,16 @@ jobs:
       - run: npm run build
 
       - name: Commit the compiled registry if it changed
+        # GitHub's own Actions identity, not an address at druxtjs.org. A
+        # commit author has to be an address that exists: a made-up one cannot
+        # be verified, and anyone replying to it gets a bounce. The noreply
+        # form needs no mailbox and no alias, and GitHub attributes the commit
+        # to the Actions app rather than to a person who did not make it.
         env:
-          GIT_AUTHOR_NAME: druxt-bot
-          GIT_AUTHOR_EMAIL: bot@druxtjs.org
-          GIT_COMMITTER_NAME: druxt-bot
-          GIT_COMMITTER_EMAIL: bot@druxtjs.org
+          GIT_AUTHOR_NAME: 'github-actions[bot]'
+          GIT_AUTHOR_EMAIL: '41898282+github-actions[bot]@users.noreply.github.com'
+          GIT_COMMITTER_NAME: 'github-actions[bot]'
+          GIT_COMMITTER_EMAIL: '41898282+github-actions[bot]@users.noreply.github.com'
         run: |
           if git diff --quiet -- modules.json badges/; then
             echo "The compiled registry already matches the data. Nothing to commit."
@@ -68,4 +73,8 @@ jobs:
           fi
           git add modules.json badges/
           git commit -m "chore: rebuild the compiled registry"
-          git push
+          # Named destination, because a merge landing between the checkout and
+          # here makes a bare push a non-fast-forward rejection. The next
+          # scheduled run rebuilds from whatever main then holds, so a rejected
+          # push costs a cycle rather than needing a retry here.
+          git push origin HEAD:main

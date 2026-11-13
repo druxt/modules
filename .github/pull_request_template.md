@@ -11,7 +11,7 @@ Delete this section if the change does not touch `modules/`.
 
 - [ ] The repository is public, and stays public.
 - [ ] `status` matches reality: `unreleased` until something is installable.
-- [ ] `category` is one of the six the schema accepts.
+- [ ] `category` is one of the seven the schema accepts.
 - [ ] I ran `npm run validate`, and `npm run build` if I changed data.
 
 CI posts a table comparing what the listing claims against what its repository
