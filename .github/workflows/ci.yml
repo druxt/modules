@@ -12,13 +12,11 @@ on:
     branches: [main]
   pull_request:
     branches: [main]
-    # edited, because the title is what a squash merge keeps as the subject and
-    # the default activity types do not fire on a title change. Without it a
-    # contributor can pass the commit check and then edit the title to
-    # something unconventional, and a corrected title leaves the old failure
-    # standing. Only the commits job reads the title, so the rest skip an
-    # edit rather than re-running for a description change.
-    types: [opened, synchronize, reopened, edited]
+    # The default activity types, deliberately. The pull request title needs
+    # the edited type and has its own workflow for it: adding edited here made
+    # every bot that touches the description fire a second run of this whole
+    # set, which then skipped almost every job and reported a run of skips
+    # against the commit.
 
 permissions:
   contents: read
@@ -29,7 +27,6 @@ concurrency:
 
 jobs:
   lint:
-    if: github.event.action != 'edited'
     runs-on: ubuntu-latest
     steps:
       # Actions are pinned to commit SHAs, not tags. A tag is a mutable
@@ -97,11 +94,6 @@ jobs:
 
       - run: npm ci
 
-      - name: Lint the pull request title
-        env:
-          PR_TITLE: ${{ github.event.pull_request.title }}
-        run: printf '%s\n' "$PR_TITLE" | npm run --silent lint:commit
-
       - name: Lint the pull request commit range
         run: >
           npm run lint:commit --
@@ -109,7 +101,6 @@ jobs:
           --to ${{ github.event.pull_request.head.sha }}
 
   yaml:
-    if: github.event.action != 'edited'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262  # v4
@@ -121,7 +112,6 @@ jobs:
       - run: yamllint .gitlab-ci.yml .github/workflows/ modules/
 
   test:
-    if: github.event.action != 'edited'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262  # v4
@@ -156,7 +146,7 @@ jobs:
   # written, which today means a repository nobody can read or one that is
   # private.
   listing:
-    if: github.event_name == 'pull_request' && github.event.action != 'edited'
+    if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -289,7 +279,6 @@ jobs:
   # nothing it touches. The sync runs on a schedule and opens its own pull
   # request; this job stays offline and deterministic.
   validate:
-    if: github.event.action != 'edited'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262  # v4
