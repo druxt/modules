@@ -86,23 +86,41 @@ lint:commit:
     - npm run lint:commit -- --from "$CI_MERGE_REQUEST_DIFF_BASE_SHA" --to HEAD
     - section_end "commit"
 
+# yamllint covers both pipelines and the registry data; actionlint covers the
+# GitHub workflow, which nothing on the GitHub side lints before a push. The
+# version and its checksum are pinned together: a release asset is mutable
+# until it is verified.
 lint:yaml:
   stage: lint
   image: python:3.12-slim
   interruptible: true
+  variables:
+    ACTIONLINT_VERSION: '1.7.12'
+    ACTIONLINT_SHA256: '8aca8db96f1b94770f1b0d72b6dddcb1ebb8123cb3712530b08cc387b349a3d8'
   script:
     - section_start "yamllint" "Linting YAML"
     - pip install --quiet yamllint
-    - yamllint .gitlab-ci.yml modules/
+    - yamllint .gitlab-ci.yml .github/workflows/ modules/
     - section_end "yamllint"
+    - section_start "actionlint" "Linting GitHub workflows"
+    - apt-get update -qq && apt-get install -y -qq curl > /dev/null
+    - curl -sSLo actionlint.tar.gz "https://github.com/rhysd/actionlint/releases/download/v${ACTIONLINT_VERSION}/actionlint_${ACTIONLINT_VERSION}_linux_amd64.tar.gz"
+    - echo "${ACTIONLINT_SHA256}  actionlint.tar.gz" | sha256sum -c -
+    - tar -xzf actionlint.tar.gz actionlint
+    - ./actionlint -color
+    - section_end "actionlint"
 
 test:
   extends: .node
   stage: test
   script:
     - section_start "test" "Running the unit tests"
-    - npm test
+    - npm run test:junit
     - section_end "test"
+  artifacts:
+    when: always
+    reports:
+      junit: reports/junit.xml
 
 # The listing gate. Separated from the unit tests because this job's output is
 # what a contributor reads, and burying it under test output costs them the
