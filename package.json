@@ -25,7 +25,7 @@
     "sync:check": "node scripts/sync.mjs --check",
     "test": "node --test \"test/*.test.mjs\"",
     "validate": "node scripts/validate.mjs",
-    "test:junit": "node --test --test-reporter=spec --test-reporter-destination=stdout --test-reporter=junit --test-reporter-destination=reports/junit.xml \"test/*.test.mjs\"",
+    "test:junit": "mkdir -p reports && node --test --test-reporter=spec --test-reporter-destination=stdout --test-reporter=junit --test-reporter-destination=reports/junit.xml \"test/*.test.mjs\"",
     "review:listing": "node scripts/review-listing.mjs"
   },
   "devDependencies": {
