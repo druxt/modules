@@ -1,0 +1,11 @@
+---
+blank_issues_enabled: true
+contact_links:
+  - name: Druxt documentation
+    url: https://druxtjs.org
+    about: Guides and the API reference for Druxt itself.
+  - name: A bug in a listed module
+    url: https://druxtjs.org/modules
+    about: >
+      This repository holds the registry, not the modules. Report a module's
+      bug on the module's own repository, linked from its registry entry.
