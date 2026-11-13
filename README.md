@@ -22,27 +22,38 @@ name: config-pages
 repo: druxt-contrib/druxt-config-pages
 category: content-and-entities
 status: stable
+icon: config-pages.svg
 drupal:
   - name: config_pages
     label: Config Pages
 ```
 
-You write five fields. The rest are filled in for you:
+Five fields are required of you, five more are yours where they apply, and the
+rest are filled in for you:
 
-| Field                                                                     | Written by                     |
-| ------------------------------------------------------------------------- | ------------------------------ |
-| `name`, `repo`, `category`, `status`, `drupal`, `icon`, `website`, `docs` | you, in a pull request         |
-| `description`, `npm`, `maintainers`, `compatibility`, `type`              | the sync, from your repository |
-| version, downloads, stars                                                 | the build, from npm and GitHub |
+| Field                                                     | Written by                     |
+| --------------------------------------------------------- | ------------------------------ |
+| `name`, `repo`, `category`, `status`, `drupal`            | you, in a pull request         |
+| `path`, `icon`, `website`, `aliases`, `maintainers`       | you, where they apply          |
+| `description`, `npm`, `compatibility`, `type`, `archived` | the sync, from your repository |
+| version, downloads, stars, `iconUrl`                      | the build, from npm and GitHub |
 
 A version or a download count in a registry file is an error. Those numbers
 change daily, and the build resolves them fresh.
+
+`maintainers` wants a GitHub handle, and nothing the sync reads states one: npm
+gives npm usernames, `package.json` gives a name and an email, and a
+contributor list is not a maintainer list. So the sync leaves the field alone
+and it stays yours to write.
 
 [`schema/module.schema.json`](schema/module.schema.json) defines every field.
 The validator reads that file, so the documented shape and the enforced shape
 are the same shape.
 
 ## Read the registry
+
+`npm run build` compiles `modules/` into `modules.json` and commits it, so
+reading the registry is reading a file:
 
 ```sh
 curl https://cdn.jsdelivr.net/gh/druxt/modules@main/modules.json
@@ -54,18 +65,38 @@ cached at the edge for twelve hours.
 
 No service runs behind this. The file is served from the repository.
 
+## Badge a module
+
+The build also writes one [shields.io](https://shields.io) endpoint response
+per module, so a README can show a module's status without hard-coding it:
+
+```markdown
+![status](https://img.shields.io/endpoint?url=https://cdn.jsdelivr.net/gh/druxt/modules@main/badges/node-preview.json)
+```
+
+Append `&label=release` or any other
+[shields parameter](https://shields.io/badges/endpoint-badge) to restyle it.
+The badge reads the registry, so changing a module's `status` here updates
+every badge pointing at it, with no commit to the repository showing it.
+
 ## Work on the registry
 
 ```sh
 npm install
 npm run hooks:install
 npm run validate
+npm run build
 npm test
 npm run lint
 ```
 
 `npm run validate` checks every file in `modules/` and prints what is wrong
 with each one. It is the same command CI runs.
+
+`npm run build` rewrites `modules.json` and `badges/`. The output is a function
+of `modules/` alone, with no timestamp in it, so `npm run build:check` can tell
+you whether what is committed matches what the registry says. CI runs that
+check, which is what makes the URLs above trustworthy.
 
 ## Links
 

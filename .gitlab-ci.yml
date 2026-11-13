@@ -1,0 +1,123 @@
+---
+# CI for the Druxt module registry. Two things have to hold on every merge
+# request: the repository's own tooling is clean, and every registry file
+# validates. The second is the one a contributor cares about, so it runs as its
+# own job and its output is the whole answer to "why was my listing rejected".
+#
+# See the repository standard for what the lint jobs are for.
+
+stages:
+  - lint
+  - test
+
+workflow:
+  rules:
+    - if: $CI_PIPELINE_SOURCE == 'merge_request_event'
+    - if: $CI_COMMIT_BRANCH && $CI_OPEN_MERGE_REQUESTS
+      when: never
+    - if: $CI_COMMIT_BRANCH
+
+default:
+  tags: [docker]
+  timeout: 10m
+  before_script:
+    - 'section_start() { local n="$1" t="${2:-$1}"; printf "\e[0Ksection_start:%s:%s\r\e[0K%s\n" "$(date +%s)" "$n" "$t"; }'
+    - 'section_end() { printf "\e[0Ksection_end:%s:%s\r\e[0K\n" "$(date +%s)" "$1"; }'
+
+# Shared Node setup. `corepack prepare --activate` reads the packageManager
+# field rather than naming a manager here, so this block is identical in every
+# repository whatever it installs with. The cache is keyed by the lockfile
+# hash: a dependency bump misses once and hits thereafter.
+.node:
+  image: node:22
+  interruptible: true
+  variables:
+    GIT_DEPTH: 0
+  cache:
+    key:
+      files:
+        - package-lock.json
+      prefix: node-22
+    paths:
+      - .npm/
+  before_script:
+    - !reference [default, before_script]
+    - corepack enable
+    - corepack prepare --activate
+    - npm ci --cache .npm --prefer-offline
+
+lint:
+  extends: .node
+  stage: lint
+  script:
+    - section_start "js" "Linting scripts and tests"
+    - npm run lint:js
+    - section_end "js"
+    - section_start "format" "Checking formatting"
+    - npm run lint:format
+    - section_end "format"
+    - section_start "md" "Linting Markdown"
+    - npm run lint:md
+    - section_end "md"
+    - section_start "cspell" "Spell-checking"
+    - npm run lint:cspell
+    - section_end "cspell"
+    - section_start "private" "Checking for private references"
+    - npm run lint:private
+    - section_end "private"
+    - section_start "attribution" "Checking for tool attribution"
+    - npm run lint:attribution
+    - section_end "attribution"
+
+# The title, then the whole commit range. The title is what a squash merge keeps
+# as the subject, and the range is what a merge commit keeps: a conventional
+# head commit on top of three unconventional ones still breaks the squashed
+# subject, and a prose title breaks it whatever the commits say.
+lint:commit:
+  extends: .node
+  stage: lint
+  rules:
+    - if: $CI_PIPELINE_SOURCE == 'merge_request_event'
+  script:
+    - section_start "title" "Linting the merge request title"
+    - printf '%s\n' "$CI_MERGE_REQUEST_TITLE" | npm run --silent lint:commit
+    - section_end "title"
+    - section_start "commit" "Linting the merge request commit range"
+    - npm run lint:commit -- --from "$CI_MERGE_REQUEST_DIFF_BASE_SHA" --to HEAD
+    - section_end "commit"
+
+lint:yaml:
+  stage: lint
+  image: python:3.12-slim
+  interruptible: true
+  script:
+    - section_start "yamllint" "Linting YAML"
+    - pip install --quiet yamllint
+    - yamllint .gitlab-ci.yml modules/
+    - section_end "yamllint"
+
+test:
+  extends: .node
+  stage: test
+  script:
+    - section_start "test" "Running the unit tests"
+    - npm test
+    - section_end "test"
+
+# The listing gate. Separated from the unit tests because this job's output is
+# what a contributor reads, and burying it under test output costs them the
+# answer.
+validate:
+  extends: .node
+  stage: test
+  script:
+    - section_start "validate" "Validating every registry file"
+    - npm run validate
+    - section_end "validate"
+    - section_start "build" "Checking the committed output against the registry"
+    - npm run build:check
+    - section_end "build"
+    # Not sync:check. It reads fifteen repositories over the network, so a
+    # rate limit or a GitHub outage would fail a merge request that changed
+    # nothing it touches. The sync runs on a schedule and opens its own
+    # merge request; this job stays offline and deterministic.

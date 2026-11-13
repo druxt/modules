@@ -1,0 +1,354 @@
+{
+  "schemaVersion": 1,
+  "modules": [
+    {
+      "name": "auth",
+      "repo": "druxt/druxt-auth",
+      "category": "authentication",
+      "status": "stable",
+      "icon": "auth.svg",
+      "drupal": [
+        {
+          "name": "simple_oauth",
+          "label": "Simple OAuth"
+        }
+      ],
+      "type": "official",
+      "archived": false,
+      "description": "Authentication module for DruxtJS",
+      "npm": "druxt-auth",
+      "compatibility": {
+        "druxt": "unknown"
+      },
+      "website": "https://github.com/druxt/druxt-auth"
+    },
+    {
+      "name": "blocks",
+      "repo": "druxt/druxt.js",
+      "path": "packages/blocks",
+      "category": "site-and-layout",
+      "status": "stable",
+      "icon": "blocks.svg",
+      "drupal": [
+        {
+          "name": "block",
+          "label": "Block"
+        }
+      ],
+      "type": "official",
+      "archived": false,
+      "description": "Drupal Block and Block Region Druxt components.",
+      "npm": "druxt-blocks",
+      "compatibility": {
+        "druxt": "^0.25.1"
+      },
+      "website": "https://github.com/druxt/druxt.js"
+    },
+    {
+      "name": "breadcrumb",
+      "repo": "druxt/druxt.js",
+      "path": "packages/breadcrumb",
+      "category": "routing-and-navigation",
+      "status": "stable",
+      "icon": "breadcrumb.svg",
+      "drupal": [
+        {
+          "name": "decoupled_router",
+          "label": "Decoupled Router"
+        }
+      ],
+      "type": "official",
+      "archived": false,
+      "description": "Decoupled Router based Breadcrumb Druxt component.",
+      "npm": "druxt-breadcrumb",
+      "compatibility": {
+        "druxt": "^0.25.0"
+      },
+      "website": "https://github.com/druxt/druxt.js"
+    },
+    {
+      "name": "ckeditor",
+      "repo": "druxt-contrib/druxt-ckeditor",
+      "category": "authoring-and-preview",
+      "status": "unreleased",
+      "icon": "ckeditor.svg",
+      "drupal": [
+        {
+          "name": "ckeditor5",
+          "label": "CKEditor 5"
+        }
+      ],
+      "type": "contrib",
+      "archived": false,
+      "description": "Mounts the CKEditor 5 build Drupal ships in a Druxt frontend.",
+      "compatibility": {
+        "druxt": "unknown"
+      },
+      "website": "https://github.com/druxt-contrib/druxt-ckeditor"
+    },
+    {
+      "name": "config-pages",
+      "repo": "druxt-contrib/druxt-config-pages",
+      "category": "content-and-entities",
+      "status": "stable",
+      "icon": "config-pages.svg",
+      "drupal": [
+        {
+          "name": "config_pages",
+          "label": "Config Pages"
+        }
+      ],
+      "type": "contrib",
+      "archived": false,
+      "description": "Config Pages module for Druxt",
+      "npm": "@druxt-contrib/config-pages",
+      "compatibility": {
+        "druxt": ">=0.21.0 <1"
+      },
+      "website": "https://github.com/druxt-contrib/druxt-config-pages"
+    },
+    {
+      "name": "druxt",
+      "repo": "druxt/druxt.js",
+      "path": "packages/druxt",
+      "category": "core",
+      "status": "stable",
+      "icon": "druxt.svg",
+      "drupal": [
+        {
+          "name": "druxt",
+          "label": "Druxt"
+        },
+        {
+          "name": "jsonapi",
+          "label": "JSON:API"
+        }
+      ],
+      "type": "official",
+      "archived": false,
+      "description": "The Fully Decoupled Drupal Framework for Nuxt.js.",
+      "npm": "druxt",
+      "compatibility": {
+        "druxt": "unknown"
+      },
+      "website": "https://druxtjs.org"
+    },
+    {
+      "name": "entity",
+      "repo": "druxt/druxt.js",
+      "path": "packages/entity",
+      "category": "content-and-entities",
+      "status": "stable",
+      "icon": "entity.svg",
+      "drupal": [
+        {
+          "name": "jsonapi",
+          "label": "JSON:API"
+        },
+        {
+          "name": "field_ui",
+          "label": "Field UI"
+        }
+      ],
+      "type": "official",
+      "archived": false,
+      "description": "Drupal Display Mode powered Entity, Form and Field Druxt components.",
+      "npm": "druxt-entity",
+      "compatibility": {
+        "druxt": "^0.25.1"
+      },
+      "website": "https://github.com/druxt/druxt.js"
+    },
+    {
+      "name": "layout-builder",
+      "repo": "druxt-contrib/druxt-layout-builder",
+      "category": "site-and-layout",
+      "status": "unreleased",
+      "icon": "layout-builder.svg",
+      "drupal": [
+        {
+          "name": "layout_builder",
+          "label": "Layout Builder"
+        },
+        {
+          "name": "layout_discovery",
+          "label": "Layout Discovery"
+        }
+      ],
+      "type": "contrib",
+      "archived": false,
+      "description": "Layout Builder module for Druxt",
+      "compatibility": {
+        "druxt": "unknown"
+      },
+      "website": "https://github.com/druxt-contrib/druxt-layout-builder"
+    },
+    {
+      "name": "layout-paragraphs",
+      "repo": "druxt-contrib/druxt-layout-paragraphs",
+      "category": "site-and-layout",
+      "status": "stable",
+      "icon": "layout-paragraphs.svg",
+      "drupal": [
+        {
+          "name": "layout_paragraphs",
+          "label": "Layout Paragraphs"
+        },
+        {
+          "name": "paragraphs",
+          "label": "Paragraphs"
+        }
+      ],
+      "type": "contrib",
+      "archived": false,
+      "description": "Layout Paragraphs module for Druxt",
+      "npm": "druxt-layout-paragraphs",
+      "compatibility": {
+        "druxt": "unknown"
+      },
+      "website": "https://github.com/druxt-contrib/druxt-layout-paragraphs"
+    },
+    {
+      "name": "menu",
+      "repo": "druxt/druxt.js",
+      "path": "packages/menu",
+      "category": "routing-and-navigation",
+      "status": "stable",
+      "icon": "menu.svg",
+      "drupal": [
+        {
+          "name": "jsonapi_menu_items",
+          "label": "JSON:API Menu Items"
+        },
+        {
+          "name": "menu_link_content",
+          "label": "Custom Menu Links"
+        }
+      ],
+      "type": "official",
+      "archived": false,
+      "description": "Drupal Menu and Menu item Druxt components, with support for the JSON:API Menu Items module.",
+      "npm": "druxt-menu",
+      "compatibility": {
+        "druxt": "^0.25.1"
+      },
+      "website": "https://github.com/druxt/druxt.js"
+    },
+    {
+      "name": "node-preview",
+      "repo": "druxt-contrib/druxt-node-preview",
+      "category": "authoring-and-preview",
+      "status": "stable",
+      "icon": "node-preview.svg",
+      "drupal": [
+        {
+          "name": "jsonapi_node_preview",
+          "label": "JSON:API Node Preview"
+        },
+        {
+          "name": "consumer_node_preview",
+          "label": "Consumer Node Preview"
+        }
+      ],
+      "type": "contrib",
+      "archived": false,
+      "description": "Renders Drupal node previews in a Druxt frontend, fed by JSON:API Node Preview and Consumer Node Preview.",
+      "npm": "@druxt-contrib/node-preview",
+      "compatibility": {
+        "druxt": ">=0.25.0 <1"
+      },
+      "website": "https://github.com/druxt-contrib/druxt-node-preview"
+    },
+    {
+      "name": "router",
+      "repo": "druxt/druxt.js",
+      "path": "packages/router",
+      "category": "routing-and-navigation",
+      "status": "stable",
+      "icon": "router.svg",
+      "drupal": [
+        {
+          "name": "decoupled_router",
+          "label": "Decoupled Router"
+        }
+      ],
+      "type": "official",
+      "archived": false,
+      "description": "Drupal router for Nuxt, powered by the Drupal Decoupled Router module.",
+      "npm": "druxt-router",
+      "compatibility": {
+        "druxt": "^0.25.1"
+      },
+      "website": "https://github.com/druxt/druxt.js"
+    },
+    {
+      "name": "schema",
+      "repo": "druxt/druxt.js",
+      "path": "packages/schema",
+      "category": "content-and-entities",
+      "status": "stable",
+      "icon": "schema.svg",
+      "drupal": [
+        {
+          "name": "jsonapi",
+          "label": "JSON:API"
+        },
+        {
+          "name": "field_ui",
+          "label": "Field UI"
+        }
+      ],
+      "type": "official",
+      "archived": false,
+      "description": "Drupal Content Entity schema generator for Druxt with support for View and Form displays.",
+      "npm": "druxt-schema",
+      "compatibility": {
+        "druxt": "^0.25.1"
+      },
+      "website": "https://github.com/druxt/druxt.js"
+    },
+    {
+      "name": "site",
+      "repo": "druxt/druxt.js",
+      "path": "packages/site",
+      "category": "site-and-layout",
+      "status": "stable",
+      "icon": "site.svg",
+      "drupal": [],
+      "type": "official",
+      "archived": false,
+      "description": "Out of the box Decoupled Drupal sites with Druxt.",
+      "npm": "druxt-site",
+      "compatibility": {
+        "druxt": "^0.25.1"
+      },
+      "website": "https://github.com/druxt/druxt.js"
+    },
+    {
+      "name": "views",
+      "repo": "druxt/druxt.js",
+      "path": "packages/views",
+      "category": "content-and-entities",
+      "status": "stable",
+      "icon": "views.svg",
+      "drupal": [
+        {
+          "name": "jsonapi_views",
+          "label": "JSON:API Views"
+        },
+        {
+          "name": "views",
+          "label": "Views"
+        }
+      ],
+      "type": "official",
+      "archived": false,
+      "description": "Drupal Views components for Druxt with support for filters, pagination and sorting.",
+      "npm": "druxt-views",
+      "compatibility": {
+        "druxt": "^0.25.1"
+      },
+      "website": "https://github.com/druxt/druxt.js"
+    }
+  ]
+}

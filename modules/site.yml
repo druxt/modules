@@ -1,0 +1,13 @@
+name: site
+repo: druxt/druxt.js
+path: packages/site
+category: site-and-layout
+status: stable
+icon: site.svg
+drupal: []
+type: official
+archived: false
+description: Out of the box Decoupled Drupal sites with Druxt.
+npm: druxt-site
+compatibility:
+  druxt: ^0.25.1

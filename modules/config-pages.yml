@@ -1,0 +1,14 @@
+name: config-pages
+repo: druxt-contrib/druxt-config-pages
+category: content-and-entities
+status: stable
+icon: config-pages.svg
+drupal:
+  - name: config_pages
+    label: Config Pages
+type: contrib
+archived: false
+description: Config Pages module for Druxt
+npm: "@druxt-contrib/config-pages"
+compatibility:
+  druxt: ">=0.21.0 <1"

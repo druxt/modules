@@ -1,0 +1,15 @@
+name: breadcrumb
+repo: druxt/druxt.js
+path: packages/breadcrumb
+category: routing-and-navigation
+status: stable
+icon: breadcrumb.svg
+drupal:
+  - name: decoupled_router
+    label: Decoupled Router
+type: official
+archived: false
+description: Decoupled Router based Breadcrumb Druxt component.
+npm: druxt-breadcrumb
+compatibility:
+  druxt: ^0.25.0

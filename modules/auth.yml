@@ -1,0 +1,14 @@
+name: auth
+repo: druxt/druxt-auth
+category: authentication
+status: stable
+icon: auth.svg
+drupal:
+  - name: simple_oauth
+    label: Simple OAuth
+type: official
+archived: false
+description: Authentication module for DruxtJS
+npm: druxt-auth
+compatibility:
+  druxt: unknown

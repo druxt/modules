@@ -1,0 +1,18 @@
+name: menu
+repo: druxt/druxt.js
+path: packages/menu
+category: routing-and-navigation
+status: stable
+icon: menu.svg
+drupal:
+  - name: jsonapi_menu_items
+    label: 'JSON:API Menu Items'
+  - name: menu_link_content
+    label: Custom Menu Links
+type: official
+archived: false
+description: Drupal Menu and Menu item Druxt components, with support for the JSON:API Menu
+  Items module.
+npm: druxt-menu
+compatibility:
+  druxt: ^0.25.1

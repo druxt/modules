@@ -1,0 +1,15 @@
+name: router
+repo: druxt/druxt.js
+path: packages/router
+category: routing-and-navigation
+status: stable
+icon: router.svg
+drupal:
+  - name: decoupled_router
+    label: Decoupled Router
+type: official
+archived: false
+description: Drupal router for Nuxt, powered by the Drupal Decoupled Router module.
+npm: druxt-router
+compatibility:
+  druxt: ^0.25.1

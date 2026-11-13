@@ -1,0 +1,15 @@
+name: layout-builder
+repo: druxt-contrib/druxt-layout-builder
+category: site-and-layout
+status: unreleased
+icon: layout-builder.svg
+drupal:
+  - name: layout_builder
+    label: Layout Builder
+  - name: layout_discovery
+    label: Layout Discovery
+type: contrib
+archived: false
+description: Layout Builder module for Druxt
+compatibility:
+  druxt: unknown

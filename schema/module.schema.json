@@ -1,0 +1,149 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://druxtjs.org/schema/module.schema.json",
+  "title": "Druxt module registry entry",
+  "description": "One module, as committed to modules/<name>.yml. The validator reads this file rather than carrying its own copy of the rules, so the documented shape and the enforced shape cannot drift apart.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["name", "repo", "category", "status", "drupal"],
+  "properties": {
+    "name": {
+      "description": "The registry key: the module's short name with no organisation prefix, matching the file name.",
+      "type": "string",
+      "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$"
+    },
+    "repo": {
+      "description": "The source repository, as owner/name on GitHub.",
+      "type": "string",
+      "pattern": "^[A-Za-z0-9](?:[A-Za-z0-9-]*[A-Za-z0-9])?/[A-Za-z0-9._-]+$"
+    },
+    "path": {
+      "description": "The package directory inside repo, for a module published from a monorepo. Absent means the repository root.",
+      "type": "string",
+      "pattern": "^[A-Za-z0-9._-]+(/[A-Za-z0-9._-]+)*$"
+    },
+    "category": {
+      "description": "Which part of the stack the module belongs to. core is the framework itself, not every package the monorepo publishes.",
+      "enum": [
+        "core",
+        "content-and-entities",
+        "routing-and-navigation",
+        "site-and-layout",
+        "authoring-and-preview",
+        "authentication",
+        "tooling"
+      ]
+    },
+    "status": {
+      "description": "How far along the module is. Not a quality judgement: it says what a visitor can install today.",
+      "enum": ["stable", "prerelease", "unreleased", "deprecated"]
+    },
+    "drupal": {
+      "description": "The Drupal projects or core subsystems the module renders. Empty when it pairs with nothing on the Drupal side, never omitted.",
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["name", "label"],
+        "properties": {
+          "name": {
+            "description": "The Drupal machine name, as it appears in the project's info.yml.",
+            "type": "string",
+            "pattern": "^[a-z][a-z0-9_]*$"
+          },
+          "label": {
+            "description": "The human-readable project or subsystem name.",
+            "type": "string",
+            "minLength": 1
+          },
+          "url": {
+            "description": "Written by the sync: the drupal.org project page, where the machine name names a contributed project. Absent for a core subsystem.",
+            "type": "string",
+            "format": "uri"
+          }
+        }
+      }
+    },
+    "icon": {
+      "description": "A file name under icons/, never a URL: the registry serves the icon it holds, and the build resolves the absolute iconUrl into the compiled output. Required for a module the project maintains; optional for anyone else's, where the build draws a lettermark instead.",
+      "type": "string",
+      "pattern": "^[a-z0-9]+(-[a-z0-9]+)*\\.(svg|png)$"
+    },
+    "website": {
+      "description": "Where the module presents itself. The sync defaults it to the GitHub repository, so the field is always populated.",
+      "type": "string",
+      "format": "uri"
+    },
+    "description": {
+      "description": "Written by the sync from the module's own package.json. Not hand-edited.",
+      "type": "string"
+    },
+    "npm": {
+      "description": "Written by the sync: the published package name, or absent when the module has never been published.",
+      "type": "string"
+    },
+    "maintainers": {
+      "description": "Written by the sync from the module's repository.",
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["github"],
+        "properties": {
+          "github": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "compatibility": {
+      "description": "Written by the sync from the module's own peerDependencies.",
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "druxt": {
+          "description": "The module's declared Druxt range, from its peerDependencies or, failing that, its dependencies. unknown when it declares neither.",
+          "type": "string"
+        }
+      }
+    },
+    "type": {
+      "description": "Written by the sync from the owner of repo. A committed value that disagrees with the derived one is an error, not an override.",
+      "enum": ["official", "contrib", "3rd-party"]
+    },
+    "aliases": {
+      "description": "Search synonyms, so a visitor who types the npm name or the Drupal machine name finds the entry. Maintained by the project, not by a listing.",
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "archived": {
+      "description": "Written by the sync from GitHub. A listed module whose repository is archived says so rather than looking maintained.",
+      "type": "boolean"
+    }
+  },
+  "x-druxt-owners": {
+    "description": "Maps a repository owner to the type derived from it. An owner absent here derives 3rd-party.",
+    "official": ["druxt"],
+    "contrib": ["druxt-contrib"]
+  },
+  "x-druxt-legacy-owners": {
+    "description": "Owners the project is leaving. A listing from one of these warns and passes: the reviewer decides whether to list it now or wait for its migration.",
+    "owners": ["Realityloop"]
+  },
+  "x-druxt-build-fields": {
+    "description": "Resolved by the build into the compiled output and never committed to a registry file.",
+    "fields": [
+      "version",
+      "downloads",
+      "stars",
+      "published",
+      "publishedAt",
+      "iconUrl"
+    ]
+  }
+}

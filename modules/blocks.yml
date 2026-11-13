@@ -1,0 +1,15 @@
+name: blocks
+repo: druxt/druxt.js
+path: packages/blocks
+category: site-and-layout
+status: stable
+icon: blocks.svg
+drupal:
+  - name: block
+    label: Block
+type: official
+archived: false
+description: Drupal Block and Block Region Druxt components.
+npm: druxt-blocks
+compatibility:
+  druxt: ^0.25.1
