@@ -1,5 +1,6 @@
 # Add a term here rather than switching the check off for a file.
 # Words this project uses that the standard dictionaries do not carry.
+ACMRD
 actionlint
 autobuild
 Autobuild
@@ -8,6 +9,7 @@ behaviour
 bookworm
 ckeditor
 cloudflared
+CODEOWNERS
 Codespaces
 colour
 commitlint
@@ -31,6 +33,7 @@ hverlin
 hyperscript
 interruptible
 jsonapi
+judgements
 knip
 Ksection
 Lando
@@ -57,12 +60,14 @@ opcache
 opencode
 organisation
 pdo
+pipx
 pyyaml
 Realityloop
 Serialised
 shivammathur
 siroc
 sqlite
+startswith
 unbracket
 unparseable
 vfox
