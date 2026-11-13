@@ -69,22 +69,50 @@ lint:
     - npm run lint:attribution
     - section_end "attribution"
 
-# The title, then the whole commit range. The title is what a squash merge keeps
-# as the subject, and the range is what a merge commit keeps: a conventional
-# head commit on top of three unconventional ones still breaks the squashed
-# subject, and a prose title breaks it whatever the commits say.
+# On a merge request, the title and then the whole commit range. The title is
+# what a squash merge keeps as the subject, and the range is what a merge commit
+# keeps: a conventional head commit on top of three unconventional ones still
+# breaks the squashed subject, and a prose title breaks it whatever the commits
+# say. A branch pipeline has neither a title nor a diff base, so it lints the
+# commits the push added instead. Skipping it there would leave a direct push to
+# the default branch as the one way an unconventional subject reaches history
+# unchecked.
 lint:commit:
   extends: .node
   stage: lint
-  rules:
-    - if: $CI_PIPELINE_SOURCE == 'merge_request_event'
   script:
-    - section_start "title" "Linting the merge request title"
-    - printf '%s\n' "$CI_MERGE_REQUEST_TITLE" | npm run --silent lint:commit
-    - section_end "title"
-    - section_start "commit" "Linting the merge request commit range"
-    - npm run lint:commit -- --from "$CI_MERGE_REQUEST_DIFF_BASE_SHA" --to HEAD
-    - section_end "commit"
+    - |
+      # GitLab checks the exit status of each script item, but this item is one
+      # block, so without set -e only the last command in it would be read and
+      # a failing title lint would pass the job.
+      set -e
+      set -o pipefail
+      if [ -n "${CI_MERGE_REQUEST_IID:-}" ]; then
+        section_start "title" "Linting the merge request title"
+        printf '%s\n' "$CI_MERGE_REQUEST_TITLE" | npm run --silent lint:commit
+        section_end "title"
+        section_start "commit" "Linting the merge request commit range"
+        npm run lint:commit -- --from "$CI_MERGE_REQUEST_DIFF_BASE_SHA" --to HEAD
+        section_end "commit"
+      else
+        # An all-zero sha is what GitLab passes for the first push of a branch,
+        # and a force-push leaves a sha this clone may no longer hold. Neither
+        # is a usable range, so both fall back to the pushed commit alone.
+        base="${CI_COMMIT_BEFORE_SHA:-}"
+        case "$base" in 0000000000000000000000000000000000000000) base="" ;; esac
+        if [ -n "$base" ] && ! git cat-file -e "${base}^{commit}" 2>/dev/null; then
+          echo "[WARN] ${base} is not a commit in this clone; linting HEAD alone." >&2
+          base=""
+        fi
+        if [ -n "$base" ]; then
+          section_start "commit" "Linting the commits this push added"
+          npm run lint:commit -- --from "$base" --to HEAD
+        else
+          section_start "commit" "Linting the pushed commit"
+          npm run lint:commit -- --last
+        fi
+        section_end "commit"
+      fi
 
 # yamllint covers both pipelines and the registry data; actionlint covers the
 # GitHub workflow, which nothing on the GitHub side lints before a push. The
