@@ -12,6 +12,13 @@ on:
     branches: [main]
   pull_request:
     branches: [main]
+    # edited, because the title is what a squash merge keeps as the subject and
+    # the default activity types do not fire on a title change. Without it a
+    # contributor can pass the commit check and then edit the title to
+    # something unconventional, and a corrected title leaves the old failure
+    # standing. Only the commits job reads the title, so the rest skip an
+    # edit rather than re-running for a description change.
+    types: [opened, synchronize, reopened, edited]
 
 permissions:
   contents: read
@@ -22,6 +29,7 @@ concurrency:
 
 jobs:
   lint:
+    if: github.event.action != 'edited'
     runs-on: ubuntu-latest
     steps:
       # Actions are pinned to commit SHAs, not tags. A tag is a mutable
@@ -101,6 +109,7 @@ jobs:
           --to ${{ github.event.pull_request.head.sha }}
 
   yaml:
+    if: github.event.action != 'edited'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262  # v4
@@ -112,6 +121,7 @@ jobs:
       - run: yamllint .gitlab-ci.yml .github/workflows/ modules/
 
   test:
+    if: github.event.action != 'edited'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262  # v4
@@ -146,7 +156,7 @@ jobs:
   # written, which today means a repository nobody can read or one that is
   # private.
   listing:
-    if: github.event_name == 'pull_request'
+    if: github.event_name == 'pull_request' && github.event.action != 'edited'
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -180,11 +190,28 @@ jobs:
           BASE: ${{ github.event.pull_request.base.sha }}
           HEAD: ${{ github.event.pull_request.head.sha }}
         run: |
-          keys=$(git diff --no-renames --name-only --diff-filter=ACMD "$BASE" "$HEAD" -- 'modules/*.yml' \
-            | xargs -r -n1 basename \
-            | sed 's/\.yml$//' \
-            | sort -u \
-            | tr '\n' ' ')
+          # sed rather than xargs -n1 basename: xargs splits its input on
+          # whitespace, so modules/two words.yml would arrive as two keys that
+          # both look like valid slugs and the check below would pass them.
+          # One line in, one key out, whatever the name holds.
+          all=$(git diff --no-renames --name-only --diff-filter=ACMD "$BASE" "$HEAD" -- 'modules/*.yml' \
+            | sed 's|^modules/||; s|\.yml$||' \
+            | sort -u)
+          # Every key has to be the plain slug the schema already requires of a
+          # listing's name. A key reaches the review step as a word in an
+          # unquoted expansion, so one carrying a space would arrive as two
+          # keys and one carrying a glob character would expand against the
+          # checkout. Refusing the file is the only safe answer: skipping it
+          # would leave a listing merged that nothing reviewed.
+          if [ -n "$all" ]; then
+            bad=$(printf '%s\n' "$all" | grep -vE '^[a-z0-9]+(-[a-z0-9]+)*$' || true)
+            if [ -n "$bad" ]; then
+              echo "::error::Not a listing filename: $(printf '%s' "$bad" | tr '\n' ' ')"
+              echo "A listing is named for its module, as ^[a-z0-9]+(-[a-z0-9]+)*$.yml"
+              exit 1
+            fi
+          fi
+          keys=$(printf '%s' "$all" | tr '\n' ' ')
           echo "keys=$keys" >> "$GITHUB_OUTPUT"
           echo "Touched listings: ${keys:-none}"
 
@@ -193,9 +220,10 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           # Through the environment rather than interpolated into the script.
-          # The keys come from filenames in the pull request and nothing
-          # constrains those to a safe character set, so a branch adding
-          # modules/x$(...).yml would otherwise have it run here.
+          # Through the environment, so a filename cannot reach the shell as
+          # script. The step above has already refused any key that is not a
+          # plain slug, which is what makes the unquoted expansion below safe
+          # to split on and free of anything a glob would match.
           KEYS: ${{ steps.changed.outputs.keys }}
         run: |
           # The runner's default shell is bash -e, which does not set pipefail,
@@ -205,10 +233,28 @@ jobs:
           # shellcheck disable=SC2086  # deliberately word-split into arguments
           npm run --silent review:listing -- $KEYS | tee listing-review.md
 
+      # The job summary is the copy that always exists. A pull request from a
+      # fork gets a read-only token whatever permissions this workflow asks
+      # for, so the comment below cannot be written for exactly the
+      # contributions this gate is for, and the summary is what a maintainer
+      # reads in that case.
+      - name: Put the review in the job summary
+        if: ${{ always() && steps.changed.outputs.keys != '' }}
+        run: |
+          test -s listing-review.md || exit 0
+          cat listing-review.md >> "$GITHUB_STEP_SUMMARY"
+
       # One comment per pull request, rewritten on each push, so the thread
       # does not fill with stale tables as a contributor fixes things.
+      #
+      # Skipped on a fork, where the token cannot write it. Failing the job
+      # there would turn a valid listing red over a permission the contributor
+      # cannot be given, so the verdict stays with the review step and the
+      # evidence stays in the summary above.
       - name: Post the review for a maintainer to confirm
-        if: ${{ always() && steps.changed.outputs.keys != '' }}
+        if: >
+          always() && steps.changed.outputs.keys != '' &&
+          github.event.pull_request.head.repo.full_name == github.repository
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           PR: ${{ github.event.pull_request.number }}
@@ -243,6 +289,7 @@ jobs:
   # nothing it touches. The sync runs on a schedule and opens its own pull
   # request; this job stays offline and deterministic.
   validate:
+    if: github.event.action != 'edited'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262  # v4

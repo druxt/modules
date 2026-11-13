@@ -46,8 +46,18 @@ export function statusFindings(data, values, published) {
   return findings
 }
 
-export function report(rows) {
+export function report(rows, missing = []) {
   const lines = ['## Listing review', '']
+  // Below the heading, never above it. The workflow finds the comment it wrote
+  // last time by the body starting with that heading, so a notice printed
+  // first would hide the report from that lookup and post a fresh comment on
+  // every push, which is what a pull request removing a listing would do.
+  if (missing.length) {
+    for (const key of missing) {
+      lines.push(`\`${key}\` is no longer in modules/, so it was not reviewed.`)
+    }
+    lines.push('')
+  }
   for (const row of rows) {
     lines.push(`### \`${row.key}\``, '')
     if (row.error) {
@@ -63,6 +73,11 @@ export function report(rows) {
       `| repository | \`${row.claimed.repo}\` | ${row.found.repoUrl} |`,
       `| type | ${row.claimed.type ?? '_derived_'} | \`${row.found.type}\` |`,
       `| status | \`${row.claimed.status}\` | ${row.found.npm ? `\`${row.found.npm}\` on npm` : 'no npm package found'} |`,
+      ...(row.claimed.npm
+        ? [
+            `| npm | \`${row.claimed.npm}\` | ${row.found.confirmed ? 'on npm' : '**not on npm**'} |`,
+          ]
+        : []),
       `| archived | | ${row.found.archived ? '**yes**' : 'no'} |`,
       `| druxt | | \`${row.found.druxt}\` |`,
       ''
@@ -106,7 +121,34 @@ export async function reviewEntry(entry, schema, sources) {
     }
   }
 
-  const { values, notes = [], error } = await resolve(entry, schema, sources)
+  // A rejection, not just a returned error. resolve() reads values out of a
+  // package.json this project does not own, so a name that is a number rather
+  // than a string reaches String.prototype.split and throws. Letting that
+  // propagate would cost every other listing in the same pull request its row,
+  // which is the same failure the guard above exists to prevent. A listing
+  // that cannot be reviewed is reported as unmergeable rather than skipped:
+  // merging it would mean merging something nothing has read.
+  let resolved
+  let confirmed
+  try {
+    resolved = await resolve(entry, schema, sources)
+    // The listing's own npm field, checked against npm rather than believed.
+    // resolve() looks up the name in the repository's package.json, which is
+    // a different claim: a listing can name a package the repository does not.
+    // Taking the field itself as evidence let a status of stable with a name
+    // nobody has published pass without a word, which is the one case the
+    // finding below exists for.
+    confirmed = entry.data.npm
+      ? Boolean(await sources.npmPackage(entry.data.npm))
+      : false
+  } catch (cause) {
+    return {
+      key: entry.key,
+      error: `Reviewing it against \`${entry.data.repo}\` failed: ${cause.message}`,
+    }
+  }
+
+  const { values, notes = [], error } = resolved
   if (error) return { key: entry.key, error }
 
   return {
@@ -118,14 +160,12 @@ export async function reviewEntry(entry, schema, sources) {
       npm: values.npm,
       archived: Boolean(values.archived),
       druxt: values.compatibility?.druxt ?? 'unknown',
+      confirmed,
     },
-    findings: statusFindings(entry.data, values, published(entry.data)),
+    findings: statusFindings(entry.data, values, confirmed),
     notes,
   }
 }
-
-/** Whether npm already holds a name for this listing. */
-const published = (data) => Boolean(data.npm)
 
 /**
  * Every requested key reviewed, with the ones that have no file separated out.
@@ -162,11 +202,7 @@ async function main(keys) {
     liveSources()
   )
 
-  for (const key of missing) {
-    console.log(`\`${key}\` is no longer in modules/, so it was not reviewed.`)
-  }
-
-  console.log(report(rows))
+  console.log(report(rows, missing))
 
   if (blocked) {
     console.error(

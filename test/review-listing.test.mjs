@@ -209,3 +209,89 @@ test('a key with no file is reported as removed, not as an error', async () => {
   assert.deepEqual(missing, ['gone'])
   assert.equal(blocked, 0)
 })
+
+// resolve() reads a package.json this project does not own. A name that is a
+// number rather than a string reaches String.prototype.split, and the throw
+// used to take every other listing's row with it.
+test('a listing whose repository breaks the resolver is a row, not a throw', async () => {
+  const throwing = {
+    ...sources(readable),
+    npmPackage: async (name) => ({ name: name.split('/')[0] }),
+    packageJson: async () => ({ name: 123 }),
+  }
+  const data = { name: 'x', repo: 'druxt/x', status: 'stable' }
+  const row = await reviewEntry(listing(data), schema, throwing)
+  assert.match(row.error, /^Reviewing it against `druxt\/x` failed:/)
+})
+
+test('a resolver throw on one listing does not cost the next one its row', async () => {
+  const throwing = {
+    ...sources(readable),
+    npmPackage: async (name) => ({ name: name.split('/')[0] }),
+    packageJson: async (repo) => (repo === 'druxt/bad' ? { name: 123 } : {}),
+  }
+  const entries = [
+    {
+      file: 'bad.yml',
+      key: 'bad',
+      data: { name: 'bad', repo: 'druxt/bad', status: 'stable' },
+    },
+    {
+      file: 'good.yml',
+      key: 'good',
+      data: { name: 'good', repo: 'druxt/good', status: 'unreleased' },
+    },
+  ]
+  const { rows, blocked } = await reviewListings(
+    ['bad', 'good'],
+    entries,
+    schema,
+    throwing
+  )
+  assert.equal(rows.length, 2)
+  assert.equal(blocked, 1)
+  assert.match(rows[0].error, /failed:/)
+  assert.equal(rows[1].error, undefined)
+  assert.match(report(rows), /### `good`/)
+})
+
+// The workflow finds the comment it wrote last time by the body starting with
+// the heading, so a removal notice above it would post a fresh comment on
+// every push instead of rewriting the one that is there.
+test('the report starts with its heading even when a listing was removed', () => {
+  const body = report([], ['gone'])
+  assert.ok(
+    body.startsWith('## Listing review'),
+    `the body starts with: ${JSON.stringify(body.slice(0, 40))}`
+  )
+  assert.match(body, /`gone` is no longer in modules\//)
+})
+
+// The listing's own npm field is a claim like any other. Treating its presence
+// as proof of publication let a status of stable with a name nobody has
+// published through without a word, which is the one case the finding exists
+// for.
+test('an npm name npm does not have does not pass as a published release', async () => {
+  const data = {
+    name: 'x',
+    repo: 'druxt/x',
+    status: 'stable',
+    npm: 'a-name-nobody-published',
+  }
+  const row = await reviewEntry(listing(data), schema, sources(readable))
+  assert.equal(row.found.confirmed, false)
+  assert.equal(row.findings.length, 1)
+  assert.match(row.findings[0], /no published npm package/)
+  assert.match(report([row]), /\*\*not on npm\*\*/)
+})
+
+test('an npm name npm confirms is accepted as the release it claims', async () => {
+  const confirming = {
+    ...sources(readable),
+    npmPackage: async (name) => ({ name, latest: '1.0.0' }),
+  }
+  const data = { name: 'x', repo: 'druxt/x', status: 'stable', npm: 'druxt' }
+  const row = await reviewEntry(listing(data), schema, confirming)
+  assert.equal(row.found.confirmed, true)
+  assert.deepEqual(row.findings, [])
+})

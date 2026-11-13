@@ -74,9 +74,12 @@ lint:
 # keeps: a conventional head commit on top of three unconventional ones still
 # breaks the squashed subject, and a prose title breaks it whatever the commits
 # say. A branch pipeline has neither a title nor a diff base, so it lints the
-# commits the push added instead. Skipping it there would leave a direct push to
-# the default branch as the one way an unconventional subject reaches history
-# unchecked.
+# range the push added where the previous sha is usable, which covers a direct
+# push to the default branch: the one way an unconventional subject would
+# otherwise reach history unchecked. Where that sha is not usable, which is the
+# first push of a new branch or a force push, it falls back to the tip commit
+# alone, so middle commits of such a push are read when the merge request opens
+# rather than here.
 lint:commit:
   extends: .node
   stage: lint

@@ -30,6 +30,12 @@ concurrency:
 
 jobs:
   build:
+    # push and schedule only ever run here, but workflow_dispatch can be
+    # started from any branch, and the push below names main as its
+    # destination. Without this, dispatching from a feature branch would
+    # fast-forward main onto that branch: every commit on it, not just the
+    # generated files.
+    if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     permissions:
       contents: write
