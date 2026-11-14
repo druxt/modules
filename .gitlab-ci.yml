@@ -69,40 +69,89 @@ lint:
     - npm run lint:attribution
     - section_end "attribution"
 
-# The title, then the whole commit range. The title is what a squash merge keeps
-# as the subject, and the range is what a merge commit keeps: a conventional
-# head commit on top of three unconventional ones still breaks the squashed
-# subject, and a prose title breaks it whatever the commits say.
+# On a merge request, the title and then the whole commit range. The title is
+# what a squash merge keeps as the subject, and the range is what a merge commit
+# keeps: a conventional head commit on top of three unconventional ones still
+# breaks the squashed subject, and a prose title breaks it whatever the commits
+# say. A branch pipeline has neither a title nor a diff base, so it lints the
+# range the push added where the previous sha is usable, which covers a direct
+# push to the default branch: the one way an unconventional subject would
+# otherwise reach history unchecked. Where that sha is not usable, which is the
+# first push of a new branch or a force push, it falls back to the tip commit
+# alone, so middle commits of such a push are read when the merge request opens
+# rather than here.
 lint:commit:
   extends: .node
   stage: lint
-  rules:
-    - if: $CI_PIPELINE_SOURCE == 'merge_request_event'
   script:
-    - section_start "title" "Linting the merge request title"
-    - printf '%s\n' "$CI_MERGE_REQUEST_TITLE" | npm run --silent lint:commit
-    - section_end "title"
-    - section_start "commit" "Linting the merge request commit range"
-    - npm run lint:commit -- --from "$CI_MERGE_REQUEST_DIFF_BASE_SHA" --to HEAD
-    - section_end "commit"
+    - |
+      # GitLab checks the exit status of each script item, but this item is one
+      # block, so without set -e only the last command in it would be read and
+      # a failing title lint would pass the job.
+      set -e
+      set -o pipefail
+      if [ -n "${CI_MERGE_REQUEST_IID:-}" ]; then
+        section_start "title" "Linting the merge request title"
+        printf '%s\n' "$CI_MERGE_REQUEST_TITLE" | npm run --silent lint:commit
+        section_end "title"
+        section_start "commit" "Linting the merge request commit range"
+        npm run lint:commit -- --from "$CI_MERGE_REQUEST_DIFF_BASE_SHA" --to HEAD
+        section_end "commit"
+      else
+        # An all-zero sha is what GitLab passes for the first push of a branch,
+        # and a force-push leaves a sha this clone may no longer hold. Neither
+        # is a usable range, so both fall back to the pushed commit alone.
+        base="${CI_COMMIT_BEFORE_SHA:-}"
+        case "$base" in 0000000000000000000000000000000000000000) base="" ;; esac
+        if [ -n "$base" ] && ! git cat-file -e "${base}^{commit}" 2>/dev/null; then
+          echo "[WARN] ${base} is not a commit in this clone; linting HEAD alone." >&2
+          base=""
+        fi
+        if [ -n "$base" ]; then
+          section_start "commit" "Linting the commits this push added"
+          npm run lint:commit -- --from "$base" --to HEAD
+        else
+          section_start "commit" "Linting the pushed commit"
+          npm run lint:commit -- --last
+        fi
+        section_end "commit"
+      fi
 
+# yamllint covers both pipelines and the registry data; actionlint covers the
+# GitHub workflow, which nothing on the GitHub side lints before a push. The
+# version and its checksum are pinned together: a release asset is mutable
+# until it is verified.
 lint:yaml:
   stage: lint
   image: python:3.12-slim
   interruptible: true
+  variables:
+    ACTIONLINT_VERSION: '1.7.12'
+    ACTIONLINT_SHA256: '8aca8db96f1b94770f1b0d72b6dddcb1ebb8123cb3712530b08cc387b349a3d8'
   script:
     - section_start "yamllint" "Linting YAML"
     - pip install --quiet yamllint
-    - yamllint .gitlab-ci.yml modules/
+    - yamllint .gitlab-ci.yml .github/workflows/ modules/
     - section_end "yamllint"
+    - section_start "actionlint" "Linting GitHub workflows"
+    - apt-get update -qq && apt-get install -y -qq curl > /dev/null
+    - curl -sSLo actionlint.tar.gz "https://github.com/rhysd/actionlint/releases/download/v${ACTIONLINT_VERSION}/actionlint_${ACTIONLINT_VERSION}_linux_amd64.tar.gz"
+    - echo "${ACTIONLINT_SHA256}  actionlint.tar.gz" | sha256sum -c -
+    - tar -xzf actionlint.tar.gz actionlint
+    - ./actionlint -color
+    - section_end "actionlint"
 
 test:
   extends: .node
   stage: test
   script:
     - section_start "test" "Running the unit tests"
-    - npm test
+    - npm run test:junit
     - section_end "test"
+  artifacts:
+    when: always
+    reports:
+      junit: reports/junit.xml
 
 # The listing gate. Separated from the unit tests because this job's output is
 # what a contributor reads, and burying it under test output costs them the

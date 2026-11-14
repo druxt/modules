@@ -1,0 +1,14 @@
+# A listing is a claim about a repository this project does not own, and the
+# compiled output is read by every page that renders the registry. So a change
+# under modules/ or to the schema needs a maintainer's confirmation, not a
+# green check.
+#
+# This file only requests the review. Requiring it is a branch protection
+# setting on main ("Require review from Code Owners"), and without that setting
+# the request is advisory.
+
+*                   @druxt/maintainers
+
+/modules/           @druxt/maintainers
+/icons/             @druxt/maintainers
+/schema/            @druxt/maintainers

@@ -1,0 +1,86 @@
+---
+name: Build
+
+# Compiles the registry on the default branch and commits the result when it
+# differs. Pull requests are gated by build:check, so a push to main is
+# normally a no-op: this job exists for the inputs that change without anyone
+# touching the repository. Once the build resolves a version, a download count
+# and a star count, the scheduled run is what keeps those current, and the
+# no-op pushes stay no-ops because the build writes no timestamp.
+#
+# A push made with GITHUB_TOKEN does not start another workflow run, so this
+# cannot loop.
+
+on:
+  push:
+    branches: [main]
+  schedule:
+    # Daily, off the hour. A cron on the hour competes with everyone else's.
+    - cron: '17 4 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  # Never two builds committing to main at once, and a queued one is worth
+  # keeping rather than cancelling: it may carry data the running one does not.
+  group: build-main
+  cancel-in-progress: false
+
+jobs:
+  build:
+    # push and schedule only ever run here, but workflow_dispatch can be
+    # started from any branch, and the push below names main as its
+    # destination. Without this, dispatching from a feature branch would
+    # fast-forward main onto that branch: every commit on it, not just the
+    # generated files.
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262  # v4
+        with:
+          # The push below needs credentials, so this is the one checkout in
+          # the repository that keeps them.
+          persist-credentials: true
+
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020  # v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      - run: corepack enable && corepack prepare --activate
+
+      - run: npm ci
+
+      # Never build from data that does not validate. A compiled file is what
+      # the CDN serves, so a bad entry would be published rather than rejected.
+      - run: npm run validate
+
+      - run: npm run build
+
+      - name: Commit the compiled registry if it changed
+        # GitHub's own Actions identity, not an address at druxtjs.org. A
+        # commit author has to be an address that exists: a made-up one cannot
+        # be verified, and anyone replying to it gets a bounce. The noreply
+        # form needs no mailbox and no alias, and GitHub attributes the commit
+        # to the Actions app rather than to a person who did not make it.
+        env:
+          GIT_AUTHOR_NAME: 'github-actions[bot]'
+          GIT_AUTHOR_EMAIL: '41898282+github-actions[bot]@users.noreply.github.com'
+          GIT_COMMITTER_NAME: 'github-actions[bot]'
+          GIT_COMMITTER_EMAIL: '41898282+github-actions[bot]@users.noreply.github.com'
+        run: |
+          if git diff --quiet -- modules.json badges/; then
+            echo "The compiled registry already matches the data. Nothing to commit."
+            exit 0
+          fi
+          git add modules.json badges/
+          git commit -m "chore: rebuild the compiled registry"
+          # Named destination, because a merge landing between the checkout and
+          # here makes a bare push a non-fast-forward rejection. The next
+          # scheduled run rebuilds from whatever main then holds, so a rejected
+          # push costs a cycle rather than needing a retry here.
+          git push origin HEAD:main

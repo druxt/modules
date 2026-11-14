@@ -1,0 +1,304 @@
+---
+name: CI
+
+# The same lint, test and validate set as .gitlab-ci.yml. The registry is
+# listed from GitHub by pull request and mirrored to the internal host, so both
+# sides have to agree or a contributor is told two different things. Nothing on
+# this side lints this file: the other pipeline runs actionlint over it in
+# return.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+    # The default activity types, deliberately. The pull request title needs
+    # the edited type and has its own workflow for it: adding edited here made
+    # every bot that touches the description fire a second run of this whole
+    # set, which then skipped almost every job and reported a run of skips
+    # against the commit.
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      # Actions are pinned to commit SHAs, not tags. A tag is a mutable
+      # reference to code that runs with this repository's credentials.
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262  # v4
+        with:
+          persist-credentials: false
+          # The attribution check reads the pull request's own commits, so its
+          # base has to be present.
+          fetch-depth: 0
+
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020  # v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      # corepack reads the packageManager field, so the manager the lockfile
+      # was written by is the one that installs it, and this file never names
+      # one.
+      - run: corepack enable && corepack prepare --activate
+
+      - run: npm ci
+
+      - run: npm run lint:js
+
+      - run: npm run lint:format
+
+      - run: npm run lint:md
+
+      - run: npm run lint:cspell
+
+      # This repository is public and the compiled output is served from it to
+      # anyone. A host that resolves only on a private network must never reach
+      # a tracked file.
+      - run: npm run lint:private
+
+      # The work is the author's. No commit, pull request description or
+      # tracked file may credit an AI tool as author, co-author or generator.
+      - name: Check for AI attribution
+        env:
+          ATTRIBUTION_BASE_SHA: ${{ github.event.pull_request.base.sha || github.event.before }}
+          MERGE_REQUEST_DESCRIPTION: ${{ github.event.pull_request.body }}
+          MERGE_REQUEST_TITLE: ${{ github.event.pull_request.title }}
+        run: npm run lint:attribution
+
+  # The title, then the whole commit range. The title is what a squash merge
+  # keeps as the subject, and GitHub appends " (#N)" to it, so a prose title
+  # breaks the next push to the target branch for everyone rather than for its
+  # author.
+  commits:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262  # v4
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020  # v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      - run: corepack enable && corepack prepare --activate
+
+      - run: npm ci
+
+      - name: Lint the pull request commit range
+        run: >
+          npm run lint:commit --
+          --from ${{ github.event.pull_request.base.sha }}
+          --to ${{ github.event.pull_request.head.sha }}
+
+  yaml:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262  # v4
+        with:
+          persist-credentials: false
+
+      - run: pipx install yamllint
+
+      - run: yamllint .gitlab-ci.yml .github/workflows/ modules/
+
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262  # v4
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020  # v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      - run: corepack enable && corepack prepare --activate
+
+      - run: npm ci
+
+      - run: npm run test:junit
+
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02  # v4
+        if: always()
+        with:
+          name: test-results
+          path: reports/junit.xml
+
+  # The listing gate that reads the repositories a pull request lays claim to.
+  #
+  # Scoped to the entries this pull request touches, which is what makes the
+  # network reads affordable: a pull request adding one listing reads one
+  # repository, where sync:check reads every one of them. A listing is a claim
+  # about a repository this project does not own, so the job gathers the
+  # evidence and a maintainer makes the decision; CODEOWNERS is what requires
+  # that review. The job only goes red where a listing must not be merged as
+  # written, which today means a repository nobody can read or one that is
+  # private.
+  listing:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262  # v4
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020  # v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      - run: corepack enable && corepack prepare --activate
+
+      - run: npm ci
+
+      # Added, modified, renamed or deleted: a rename is two entries and both
+      # want reviewing, and a deletion is reported rather than skipped.
+      #
+      # --no-renames is what makes that true. With rename detection on, git
+      # reports a pure rename as one entry naming only the new path, so the
+      # listing the rename removed would never be reviewed. Turning it off
+      # makes the pair an addition and a deletion, which is what wants
+      # reviewing, and leaves no R for the filter to match.
+      - name: Find the listings this pull request touches
+        id: changed
+        env:
+          BASE: ${{ github.event.pull_request.base.sha }}
+          HEAD: ${{ github.event.pull_request.head.sha }}
+        run: |
+          # sed rather than xargs -n1 basename: xargs splits its input on
+          # whitespace, so modules/two words.yml would arrive as two keys that
+          # both look like valid slugs and the check below would pass them.
+          # One line in, one key out, whatever the name holds.
+          all=$(git diff --no-renames --name-only --diff-filter=ACMD "$BASE" "$HEAD" -- 'modules/*.yml' \
+            | sed 's|^modules/||; s|\.yml$||' \
+            | sort -u)
+          # Every key has to be the plain slug the schema already requires of a
+          # listing's name. A key reaches the review step as a word in an
+          # unquoted expansion, so one carrying a space would arrive as two
+          # keys and one carrying a glob character would expand against the
+          # checkout. Refusing the file is the only safe answer: skipping it
+          # would leave a listing merged that nothing reviewed.
+          if [ -n "$all" ]; then
+            bad=$(printf '%s\n' "$all" | grep -vE '^[a-z0-9]+(-[a-z0-9]+)*$' || true)
+            if [ -n "$bad" ]; then
+              echo "::error::Not a listing filename: $(printf '%s' "$bad" | tr '\n' ' ')"
+              echo "A listing is named for its module, as ^[a-z0-9]+(-[a-z0-9]+)*$.yml"
+              exit 1
+            fi
+          fi
+          keys=$(printf '%s' "$all" | tr '\n' ' ')
+          echo "keys=$keys" >> "$GITHUB_OUTPUT"
+          echo "Touched listings: ${keys:-none}"
+
+      - name: Review them against their repositories
+        if: steps.changed.outputs.keys != ''
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # Through the environment rather than interpolated into the script.
+          # Through the environment, so a filename cannot reach the shell as
+          # script. The step above has already refused any key that is not a
+          # plain slug, which is what makes the unquoted expansion below safe
+          # to split on and free of anything a glob would match.
+          KEYS: ${{ steps.changed.outputs.keys }}
+        run: |
+          # The runner's default shell is bash -e, which does not set pipefail,
+          # so without this the step's status is tee's and the job could not go
+          # red on a listing that must not be merged as written.
+          set -o pipefail
+          # shellcheck disable=SC2086  # deliberately word-split into arguments
+          npm run --silent review:listing -- $KEYS | tee listing-review.md
+
+      # The job summary is the copy that always exists. A pull request from a
+      # fork gets a read-only token whatever permissions this workflow asks
+      # for, so the comment below cannot be written for exactly the
+      # contributions this gate is for, and the summary is what a maintainer
+      # reads in that case.
+      - name: Put the review in the job summary
+        if: ${{ always() && steps.changed.outputs.keys != '' }}
+        run: |
+          test -s listing-review.md || exit 0
+          cat listing-review.md >> "$GITHUB_STEP_SUMMARY"
+
+      # One comment per pull request, rewritten on each push, so the thread
+      # does not fill with stale tables as a contributor fixes things.
+      #
+      # Skipped on a fork, where the token cannot write it. Failing the job
+      # there would turn a valid listing red over a permission the contributor
+      # cannot be given, so the verdict stays with the review step and the
+      # evidence stays in the summary above.
+      - name: Post the review for a maintainer to confirm
+        if: >
+          always() && steps.changed.outputs.keys != '' &&
+          github.event.pull_request.head.repo.full_name == github.repository
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR: ${{ github.event.pull_request.number }}
+        run: |
+          test -s listing-review.md || exit 0
+          # gh does not paginate api calls on its own, and this endpoint serves
+          # a page of thirty oldest first. On a pull request with more comments
+          # than that before the first listing run, the existing comment would
+          # never be in the page read and a new one would be posted on every
+          # push. --paginate reads them all and the matching ids come back one
+          # per line, so the first line is the comment to rewrite. The first
+          # line is taken by expansion rather than by piping into head, which
+          # would leave gh writing into a closed pipe.
+          ids=$(gh api --paginate \
+            "repos/${{ github.repository }}/issues/$PR/comments?per_page=100" \
+            --jq '.[] | select(.body | startswith("## Listing review")) | .id')
+          id=${ids%%$'\n'*}
+          if [ -n "$id" ]; then
+            gh api -X PATCH "repos/${{ github.repository }}/issues/comments/$id" \
+              -F body=@listing-review.md >/dev/null
+          else
+            gh api "repos/${{ github.repository }}/issues/$PR/comments" \
+              -F body=@listing-review.md >/dev/null
+          fi
+
+  # The listing gate, and the job a contributor reads. It is separate from the
+  # unit tests because burying "why was my listing rejected" under test output
+  # costs them the answer.
+  #
+  # Not sync:check. That reads every listed repository over the network, so a
+  # rate limit or a GitHub outage would fail a pull request that changed
+  # nothing it touches. The sync runs on a schedule and opens its own pull
+  # request; this job stays offline and deterministic.
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262  # v4
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020  # v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      - run: corepack enable && corepack prepare --activate
+
+      - run: npm ci
+
+      - name: Validate every registry file
+        run: npm run validate
+
+      # The build writes no timestamp, so the committed bytes and a fresh
+      # build are comparable. That is what makes the published URL answerable:
+      # what the CDN serves is what this repository's data compiles to.
+      - name: Check the committed output against the registry
+        run: npm run build:check
