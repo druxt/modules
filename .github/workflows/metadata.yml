@@ -26,9 +26,14 @@ permissions:
   contents: read
 
 concurrency:
-  # Keyed on the pull request, not the ref. An edit carries no new commit, so
-  # consecutive edits share a ref and a ref-keyed group would not supersede the
-  # run it should replace.
+  # One run per pull request. An edit arriving while a run is still going
+  # supersedes it, because the fields that run read are no longer the ones on
+  # the pull request.
+  #
+  # The key is the number rather than github.ref, which for a pull_request
+  # event is refs/pull/<number>/merge and so groups exactly the same runs. The
+  # number is not the stronger key, it only names what the group is for, and
+  # it is set because this workflow fires on nothing but pull_request.
   group: metadata-${{ github.event.pull_request.number }}
   cancel-in-progress: true
 
