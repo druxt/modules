@@ -1,13 +1,15 @@
 # Add a term here rather than switching the check off for a file.
 # Words this project uses that the standard dictionaries do not carry.
+ACMD
 actionlint
-autobuild
 Autobuild
+autobuild
 automerge
 behaviour
 bookworm
 ckeditor
 cloudflared
+CODEOWNERS
 Codespaces
 colour
 commitlint
@@ -19,8 +21,8 @@ dbaeumer
 DDEV
 devcontainer
 devcontainers
-Druxt
 druxt
+Druxt
 druxtjs
 esbenp
 esbuild
@@ -31,6 +33,7 @@ hverlin
 hyperscript
 interruptible
 jsonapi
+judgements
 knip
 Ksection
 Lando
@@ -49,20 +52,22 @@ markdownlint
 mise
 networkidle
 nproc
-Nuxt
 nuxt
+Nuxt
 nvm
 nvmrc
 opcache
 opencode
 organisation
 pdo
+pipx
 pyyaml
 Realityloop
 Serialised
 shivammathur
 siroc
 sqlite
+startswith
 unbracket
 unparseable
 vfox

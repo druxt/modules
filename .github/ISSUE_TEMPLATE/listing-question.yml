@@ -1,0 +1,51 @@
+---
+name: A question about listing a module
+description: >
+  Use this when something about listing is unclear. To list a module you do not
+  need an issue, only a pull request adding one file.
+title: 'Listing: '
+labels: [listing]
+body:
+  - type: markdown
+    attributes:
+      value: >
+        **You do not need an issue to list a module.** Open a pull request
+        adding one file to `modules/`, as CONTRIBUTING.md describes. Use this
+        form only when something is genuinely unclear: no category fits, the
+        module pairs with nothing on the Drupal side, or the validator rejects
+        a file you believe is correct.
+
+  - type: input
+    id: repo
+    attributes:
+      label: Repository
+      description: The `owner/name` the module lives in.
+      placeholder: druxt-contrib/druxt-something
+    validations:
+      required: true
+
+  - type: input
+    id: npm
+    attributes:
+      label: npm package
+      description: Leave this empty if nothing is published yet.
+      placeholder: '@druxt-contrib/something'
+
+  - type: input
+    id: drupal
+    attributes:
+      label: Drupal projects it renders
+      description: >
+        Machine names, comma separated. Leave empty if it pairs with nothing on
+        the Drupal side.
+      placeholder: config_pages, paragraphs
+
+  - type: textarea
+    id: unclear
+    attributes:
+      label: What is unclear
+      description: >
+        What you tried, and where it stopped. If the validator rejected a file,
+        paste the file and the message it printed.
+    validations:
+      required: true

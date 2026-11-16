@@ -23,6 +23,7 @@ import {
   derivedType,
   EXTENSION,
   firstPartyOwners,
+  holdsMapping,
   legacyOwners,
   owner,
   readIcons,
@@ -88,11 +89,7 @@ export function validate(entries, schema, icons = new Set()) {
       fail(`is not valid YAML: ${entry.parseError}`)
       continue
     }
-    if (
-      entry.data === null ||
-      typeof entry.data !== 'object' ||
-      Array.isArray(entry.data)
-    ) {
+    if (!holdsMapping(entry)) {
       fail('does not hold a mapping of fields')
       continue
     }

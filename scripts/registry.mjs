@@ -85,6 +85,23 @@ export function derivedType(repo, schema) {
 /** The one extension a registry file may carry. */
 export const EXTENSION = '.yml'
 
+/**
+ * Whether an entry's parsed YAML is a mapping of fields.
+ *
+ * An empty file parses to null, and a scalar or a list parses to something
+ * that is not a listing, all without a parse error. Every consumer of
+ * readModules has to refuse those, so the test lives here rather than being
+ * written out again in each of them. It reads data that has already parsed,
+ * so it says nothing about an entry carrying a parseError.
+ */
+export function holdsMapping(entry) {
+  return (
+    entry.data !== null &&
+    typeof entry.data === 'object' &&
+    !Array.isArray(entry.data)
+  )
+}
+
 /** Every registry file, with its parse result and the key its path implies. */
 export async function readModules(dir = paths.modules) {
   const names = (await readdir(dir)).sort()
