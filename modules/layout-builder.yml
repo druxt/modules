@@ -6,8 +6,10 @@ icon: layout-builder.svg
 drupal:
   - name: layout_builder
     label: Layout Builder
+    core: true
   - name: layout_discovery
     label: Layout Discovery
+    core: true
 type: contrib
 archived: false
 description: Layout Builder module for Druxt

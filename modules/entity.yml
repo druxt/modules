@@ -7,8 +7,10 @@ icon: entity.svg
 drupal:
   - name: jsonapi
     label: 'JSON:API'
+    core: true
   - name: field_ui
     label: Field UI
+    core: true
 type: official
 archived: false
 description: Drupal Display Mode powered Entity, Form and Field Druxt components.

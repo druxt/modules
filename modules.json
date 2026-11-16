@@ -84,7 +84,8 @@
       "drupal": [
         {
           "name": "block",
-          "label": "Block"
+          "label": "Block",
+          "core": true
         }
       ],
       "type": "official",
@@ -127,7 +128,8 @@
       "drupal": [
         {
           "name": "ckeditor5",
-          "label": "CKEditor 5"
+          "label": "CKEditor 5",
+          "core": true
         }
       ],
       "type": "contrib",
@@ -173,7 +175,8 @@
         },
         {
           "name": "jsonapi",
-          "label": "JSON:API"
+          "label": "JSON:API",
+          "core": true
         }
       ],
       "type": "official",
@@ -195,11 +198,13 @@
       "drupal": [
         {
           "name": "jsonapi",
-          "label": "JSON:API"
+          "label": "JSON:API",
+          "core": true
         },
         {
           "name": "field_ui",
-          "label": "Field UI"
+          "label": "Field UI",
+          "core": true
         }
       ],
       "type": "official",
@@ -220,11 +225,13 @@
       "drupal": [
         {
           "name": "layout_builder",
-          "label": "Layout Builder"
+          "label": "Layout Builder",
+          "core": true
         },
         {
           "name": "layout_discovery",
-          "label": "Layout Discovery"
+          "label": "Layout Discovery",
+          "core": true
         }
       ],
       "type": "contrib",
@@ -274,7 +281,8 @@
         },
         {
           "name": "menu_link_content",
-          "label": "Custom Menu Links"
+          "label": "Custom Menu Links",
+          "core": true
         }
       ],
       "type": "official",
@@ -343,11 +351,13 @@
       "drupal": [
         {
           "name": "jsonapi",
-          "label": "JSON:API"
+          "label": "JSON:API",
+          "core": true
         },
         {
           "name": "field_ui",
-          "label": "Field UI"
+          "label": "Field UI",
+          "core": true
         }
       ],
       "type": "official",
@@ -390,7 +400,8 @@
         },
         {
           "name": "views",
-          "label": "Views"
+          "label": "Views",
+          "core": true
         }
       ],
       "type": "official",

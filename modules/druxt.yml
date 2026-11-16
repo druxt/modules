@@ -9,6 +9,7 @@ drupal:
     label: Druxt
   - name: jsonapi
     label: 'JSON:API'
+    core: true
 type: official
 archived: false
 description: The Fully Decoupled Drupal Framework for Nuxt.js.
