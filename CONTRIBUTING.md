@@ -42,6 +42,7 @@ icon: config-pages.svg
 | `icon`     | no       | A file name under `icons/`. Required of a module this project maintains.       |
 | `path`     | no       | The package directory, for a module published from a monorepo.                 |
 | `aliases`  | no       | Earlier names the module was published under.                                  |
+| `options`  | no       | The options the module takes, for a tool that prompts for them.                |
 
 ### Categories
 
@@ -88,6 +89,10 @@ drupal:
 The machine name is what appears in the project's `info.yml`: lowercase,
 underscores, no hyphens. Core subsystems count. This is how a Drupal developer
 finds your module, by the module they already run, so fill it in carefully.
+
+An item may also carry `composer`, `setup` and `patches`, which tell a command
+line tool how to install the Drupal module. The
+[README](README.md#what-an-installer-reads) describes them and `options`.
 
 ## The fields you do not write
 

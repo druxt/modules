@@ -114,3 +114,69 @@ test('the committed output matches the committed registry', async () => {
   const onDisk = JSON.parse(await readFile(outputs.modules, 'utf8'))
   assert.deepEqual(onDisk, { schemaVersion: 1, modules })
 })
+
+// The fields a command line tool reads are written by hand and copied. The
+// build has no opinion on them: what the file says is what the output says.
+test('options, composer, setup and patches reach the output unchanged', () => {
+  const options = [
+    {
+      name: 'proxy.api',
+      type: 'boolean',
+      description: 'Proxy the API.',
+      default: false,
+    },
+    { name: 'scope', type: 'array', description: 'Scopes.', example: ['a'] },
+  ]
+  const drupal = [
+    {
+      name: 'commerce_cart',
+      label: 'Commerce Cart',
+      composer: { package: 'drupal/commerce', constraint: '^3.0' },
+      setup: [
+        {
+          title: 'Create a store',
+          command: 'drush example:command',
+          url: 'https://www.example.com/docs',
+        },
+      ],
+      patches: [
+        {
+          description: 'A fix that is not released',
+          url: 'https://www.example.com/project/-/merge_requests/4.diff',
+          package: 'drupal/core',
+          issue: 'https://www.example.com/project/issues/1',
+          until: '11.3.0',
+        },
+      ],
+    },
+  ]
+  const expected = structuredClone({ options, drupal })
+
+  const registry = compile([one({ options, drupal })], schema)
+  assert.equal(registry.schemaVersion, 1)
+  assert.deepEqual(registry.modules[0].options, expected.options)
+  assert.deepEqual(registry.modules[0].drupal, expected.drupal)
+})
+
+test('an entry without them gains none of them', () => {
+  const [module] = compile([one()], schema).modules
+  assert.equal('options' in module, false)
+  assert.deepEqual(module.drupal, [
+    { name: 'config_pages', label: 'Config Pages' },
+  ])
+})
+
+test('the committed output carries the options and setup steps of auth', async () => {
+  const { readFile } = await import('node:fs/promises')
+  const { outputs } = await import('../scripts/build.mjs')
+  const onDisk = JSON.parse(await readFile(outputs.modules, 'utf8'))
+  assert.equal(onDisk.schemaVersion, 1)
+
+  const auth = onDisk.modules.find((module) => module.name === 'auth')
+  assert.ok(
+    auth.options.some((option) => option.name === 'clientId'),
+    'auth has no clientId option'
+  )
+  const oauth = auth.drupal.find((item) => item.name === 'simple_oauth')
+  assert.ok(oauth.setup.length > 0, 'simple_oauth has no setup steps')
+})
