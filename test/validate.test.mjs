@@ -8,6 +8,8 @@ import { test } from 'node:test'
 
 import { readFile } from 'node:fs/promises'
 
+import { parse } from 'yaml'
+
 import {
   categories,
   derivedType,
@@ -593,4 +595,41 @@ test('a patch names another package as vendor/name, and until as a version', () 
     assert.equal(errors.length, 1, JSON.stringify(until))
     assert.match(errors[0], /\/drupal\/0\/patches\/0\/until/)
   }
+})
+
+// The package pattern once repeated a run of letters inside a repeated group,
+// so a long name with one bad character took seconds to refuse, doubling with
+// each letter. Forty letters would not finish.
+test('a long package name with a bad character is refused at once', () => {
+  const name = `drupal/${'a'.repeat(40)}!`
+  const patch = {
+    description: 'A fix.',
+    url: 'https://example.org/a.patch',
+    package: name,
+  }
+  for (const over of [{ composer: { package: name } }, { patches: [patch] }]) {
+    const started = Date.now()
+    const { errors } = run(withDrupal(over))
+    assert.ok(Date.now() - started < 1000, 'validation should not backtrack')
+    assert.equal(errors.length, 1)
+    assert.match(errors[0], /package/)
+  }
+})
+
+// YAML reads .inf and .nan as numbers, and JSON writes both as null.
+test('a number option whose default is not finite is refused', () => {
+  for (const text of ['.inf', '-.inf', '.nan']) {
+    const { default: value } = parse(`default: ${text}`)
+    const { errors } = run(
+      withOptions(option({ name: 'retries', type: 'number', default: value }))
+    )
+    assert.equal(errors.length, 1, text)
+    assert.match(errors[0], /\/options\/0\/default/)
+    assert.match(errors[0], /finite/)
+  }
+  assert.deepEqual(
+    run(withOptions(option({ name: 'retries', type: 'number', default: 3.5 })))
+      .errors,
+    []
+  )
 })

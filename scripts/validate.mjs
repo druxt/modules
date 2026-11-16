@@ -98,6 +98,12 @@ function optionErrors(options) {
         errors.push(
           `${at}/default is ${found === 'array' || found === 'object' ? 'an' : 'a'} ${found}, but the option's type is ${option.type}`
         )
+      } else if (found === 'number' && !Number.isFinite(option.default)) {
+        // YAML reads .inf and .nan as numbers, and JSON writes both as null,
+        // so the published default would contradict its type.
+        errors.push(
+          `${at}/default is ${option.default}, which JSON cannot hold. A number option's default is finite.`
+        )
       }
     }
   })

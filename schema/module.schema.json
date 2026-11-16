@@ -74,7 +74,7 @@
               "package": {
                 "description": "The package, as vendor/name.",
                 "type": "string",
-                "pattern": "^[a-z0-9]([_.-]?[a-z0-9]+)*/[a-z0-9](([_.]|-{1,2})?[a-z0-9]+)*$"
+                "pattern": "^[a-z0-9]+([_.-][a-z0-9]+)*/[a-z0-9]+(([_.]|-{1,2})[a-z0-9]+)*$"
               },
               "constraint": {
                 "description": "A Composer version constraint. Absent means none.",
@@ -132,7 +132,7 @@
                 "package": {
                   "description": "The package the patch applies to, as vendor/name, where that is not the item's own. On a core item this is drupal/core.",
                   "type": "string",
-                  "pattern": "^[a-z0-9]([_.-]?[a-z0-9]+)*/[a-z0-9](([_.]|-{1,2})?[a-z0-9]+)*$"
+                  "pattern": "^[a-z0-9]+([_.-][a-z0-9]+)*/[a-z0-9]+(([_.]|-{1,2})[a-z0-9]+)*$"
                 },
                 "issue": {
                   "description": "The issue the patch belongs to, over https.",
