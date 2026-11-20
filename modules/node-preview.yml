@@ -3,6 +3,7 @@ repo: druxt-contrib/druxt-node-preview
 category: authoring-and-preview
 status: stable
 icon: node-preview.svg
+website: https://contrib.druxtjs.org/druxt-node-preview/
 drupal:
   - name: jsonapi_node_preview
     label: 'JSON:API Node Preview'
