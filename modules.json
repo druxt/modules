@@ -10,7 +10,59 @@
       "drupal": [
         {
           "name": "simple_oauth",
-          "label": "Simple OAuth"
+          "label": "Simple OAuth",
+          "setup": [
+            {
+              "title": "Generate the keys that sign the tokens, outside the web root",
+              "command": "drush simple-oauth:generate-keys /absolute/path/to/keys",
+              "url": "https://git.drupalcode.org/project/simple_oauth/-/blob/6.1.x/README.md"
+            },
+            {
+              "title": "Save the paths to both keys at /admin/config/people/simple_oauth",
+              "url": "https://git.drupalcode.org/project/simple_oauth/-/blob/6.1.x/README.md"
+            },
+            {
+              "title": "Simple OAuth 6 only: create a scope with the Authorization code grant at /admin/config/people/simple_oauth/oauth2_scope/dynamic/add",
+              "url": "https://github.com/druxt/druxt-auth#drupal"
+            },
+            {
+              "title": "Create a consumer at /admin/config/services/consumer/add, and use its Client ID as clientId",
+              "url": "https://github.com/druxt/druxt-auth#drupal"
+            },
+            {
+              "title": "Authorization code grant only: give your users' role the Grant OAuth2 codes permission",
+              "url": "https://github.com/druxt/druxt-auth#drupal"
+            }
+          ]
+        }
+      ],
+      "options": [
+        {
+          "name": "clientId",
+          "type": "string",
+          "description": "The Client ID field of the Drupal consumer, not its UUID.",
+          "required": true
+        },
+        {
+          "name": "clientSecret",
+          "type": "string",
+          "description": "The secret of the Drupal consumer. The password grant sends it, and a public consumer needs none."
+        },
+        {
+          "name": "passwordClientId",
+          "type": "string",
+          "description": "The consumer the password grant authenticates as, when it is not the one clientId names."
+        },
+        {
+          "name": "passwordSession",
+          "type": "boolean",
+          "description": "Open a Drupal session beside the password grant, for a site that proxies Drupal's own pages.",
+          "default": false
+        },
+        {
+          "name": "scope",
+          "type": "array",
+          "description": "The OAuth scopes to request. Unset, no scope is sent and Simple OAuth 6 uses the consumer's own."
         }
       ],
       "type": "official",
@@ -32,7 +84,8 @@
       "drupal": [
         {
           "name": "block",
-          "label": "Block"
+          "label": "Block",
+          "core": true
         }
       ],
       "type": "official",
@@ -75,7 +128,8 @@
       "drupal": [
         {
           "name": "ckeditor5",
-          "label": "CKEditor 5"
+          "label": "CKEditor 5",
+          "core": true
         }
       ],
       "type": "contrib",
@@ -121,7 +175,8 @@
         },
         {
           "name": "jsonapi",
-          "label": "JSON:API"
+          "label": "JSON:API",
+          "core": true
         }
       ],
       "type": "official",
@@ -143,11 +198,13 @@
       "drupal": [
         {
           "name": "jsonapi",
-          "label": "JSON:API"
+          "label": "JSON:API",
+          "core": true
         },
         {
           "name": "field_ui",
-          "label": "Field UI"
+          "label": "Field UI",
+          "core": true
         }
       ],
       "type": "official",
@@ -168,11 +225,13 @@
       "drupal": [
         {
           "name": "layout_builder",
-          "label": "Layout Builder"
+          "label": "Layout Builder",
+          "core": true
         },
         {
           "name": "layout_discovery",
-          "label": "Layout Discovery"
+          "label": "Layout Discovery",
+          "core": true
         }
       ],
       "type": "contrib",
@@ -222,7 +281,8 @@
         },
         {
           "name": "menu_link_content",
-          "label": "Custom Menu Links"
+          "label": "Custom Menu Links",
+          "core": true
         }
       ],
       "type": "official",
@@ -291,11 +351,13 @@
       "drupal": [
         {
           "name": "jsonapi",
-          "label": "JSON:API"
+          "label": "JSON:API",
+          "core": true
         },
         {
           "name": "field_ui",
-          "label": "Field UI"
+          "label": "Field UI",
+          "core": true
         }
       ],
       "type": "official",
@@ -338,7 +400,8 @@
         },
         {
           "name": "views",
-          "label": "Views"
+          "label": "Views",
+          "core": true
         }
       ],
       "type": "official",

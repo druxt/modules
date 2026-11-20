@@ -7,8 +7,10 @@ icon: schema.svg
 drupal:
   - name: jsonapi
     label: 'JSON:API'
+    core: true
   - name: field_ui
     label: Field UI
+    core: true
 type: official
 archived: false
 description: Drupal Content Entity schema generator for Druxt with support for View and

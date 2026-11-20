@@ -251,3 +251,74 @@ test('the README names exactly the fields the sync writes', async () => {
     'the README and sync.mjs disagree about which fields the sync writes'
   )
 })
+
+// The fields a command line tool reads are curated, like website. The sync
+// reads a repository, and no repository states them in a form it can read, so
+// it must neither resolve them nor disturb them on the way past.
+const CURATED = {
+  options: [{ name: 'clientId', type: 'string', description: 'The consumer.' }],
+  drupal: [
+    {
+      name: 'config_pages',
+      label: 'Config Pages',
+      composer: { package: 'drupal/config_pages', constraint: '^2.0' },
+      setup: [{ title: 'Create a page type' }],
+      patches: [
+        {
+          description: 'A fix that is not released',
+          url: 'https://www.example.com/project/-/merge_requests/4.diff',
+        },
+      ],
+    },
+  ],
+}
+
+test('options, composer, setup and patches are never resolved by the sync', async () => {
+  const held = entry(structuredClone(CURATED))
+  const { values } = await resolve(held, schema, sources())
+
+  assert.equal('options' in values, false)
+  assert.equal('drupal' in values, false)
+  assert.equal(DERIVED.includes('options'), false)
+  assert.equal(DERIVED.includes('drupal'), false)
+  assert.deepEqual(held.data.options, CURATED.options, 'resolve changed them')
+  assert.deepEqual(held.data.drupal, CURATED.drupal, 'resolve changed them')
+
+  const changed = changes(held.data, values)
+  assert.equal('options' in changed, false)
+  assert.equal('drupal' in changed, false)
+})
+
+test('applying values leaves options, composer, setup and patches as written', () => {
+  const curated = [
+    'drupal:',
+    '  - name: config_pages',
+    '    label: Config Pages',
+    '    composer:',
+    '      package: drupal/config_pages',
+    "      constraint: '^2.0'",
+    '    setup:',
+    '      # Why this step exists.',
+    '      - title: Create a page type',
+    '        command: drush example:command',
+    '    patches:',
+    '      - description: A fix that is not released',
+    '        url: https://www.example.com/project/-/merge_requests/4.diff',
+    'options:',
+    '  - name: clientId',
+    '    type: string',
+    '    description: The consumer.',
+    '    default: site',
+  ].join('\n')
+  const source = `name: config-pages\n${curated}\ndescription: old\n`
+
+  const out = apply(source, {
+    description: 'Set by the sync.',
+    npm: '@druxt-contrib/config-pages',
+    compatibility: { druxt: '>=0.21.0 <1' },
+    type: 'contrib',
+    archived: false,
+  })
+  assert.ok(out.includes(curated), 'the curated block was rewritten')
+  assert.match(out, /description: Set by the sync\./)
+})

@@ -8,6 +8,8 @@ import { test } from 'node:test'
 
 import { readFile } from 'node:fs/promises'
 
+import { parse } from 'yaml'
+
 import {
   categories,
   derivedType,
@@ -347,4 +349,287 @@ test('a file that parses to something other than a mapping is refused', () => {
     )
   }
   assert.equal(holdsMapping({ data: valid() }), true)
+})
+
+// The fields a command line tool reads: a module's options, and on a Drupal
+// item its Composer package, its setup steps and its patches. All four are
+// optional, so the control at the top of this file already proves an entry
+// without them passes.
+
+const option = (over = {}) => ({
+  name: 'clientId',
+  type: 'string',
+  description: 'The identifier of the consumer.',
+  ...over,
+})
+
+const withOptions = (...options) => entry({ ...valid(), options })
+
+const withDrupal = (over = {}) =>
+  entry({
+    ...valid(),
+    drupal: [{ name: 'config_pages', label: 'Config Pages', ...over }],
+  })
+
+test('options of every type are accepted, with a default of that type', () => {
+  const { errors } = run(
+    withOptions(
+      option({ required: true, example: 'my-site' }),
+      option({ name: 'session', type: 'boolean', default: false }),
+      option({ name: 'retries', type: 'number', default: 3 }),
+      option({ name: 'scope', type: 'array', default: [] }),
+      option({ name: 'proxy', type: 'object', default: {} }),
+      option({ name: 'proxy.api', type: 'boolean', default: true }),
+      option({ name: 'label', default: 'Sign in' })
+    )
+  )
+  assert.deepEqual(errors, [])
+})
+
+test('an option needs a name, a type and a description', () => {
+  for (const field of ['name', 'type', 'description']) {
+    const data = option()
+    delete data[field]
+    const { errors } = run(withOptions(data))
+    assert.equal(errors.length, 1, `${field} was not required`)
+    assert.match(errors[0], /\/options\/0/)
+    assert.match(errors[0], new RegExp(field))
+  }
+})
+
+test('an invented option type lists the accepted ones', () => {
+  const { errors } = run(withOptions(option({ type: 'text' })))
+  assert.equal(errors.length, 1)
+  assert.match(errors[0], /\/options\/0\/type/)
+  assert.match(errors[0], /string, boolean, number, array, object/)
+})
+
+test('an option name is a dotted path of identifiers', () => {
+  for (const name of ['client id', '.clientId', 'proxy..api', 'proxy.', '']) {
+    const { errors } = run(withOptions(option({ name })))
+    assert.equal(errors.length, 1, JSON.stringify(name))
+    assert.match(errors[0], /\/options\/0\/name/)
+  }
+})
+
+test('an option name used twice in one entry names the option', () => {
+  const { errors } = run(
+    withOptions(
+      option(),
+      option({ name: 'scope', type: 'array' }),
+      option({ description: 'The same name again.' })
+    )
+  )
+  assert.equal(errors.length, 1)
+  assert.match(errors[0], /\/options\/2\/name/)
+  assert.match(errors[0], /"clientId"/)
+  assert.match(errors[0], /\/options\/0/)
+})
+
+test('a default that contradicts the type names both types', () => {
+  const contradictions = [
+    ['string', 1, 'number'],
+    ['string', null, 'null'],
+    ['boolean', 'false', 'string'],
+    ['number', '3', 'string'],
+    ['array', {}, 'object'],
+    ['object', [], 'array'],
+    ['object', null, 'null'],
+  ]
+  for (const [type, value, found] of contradictions) {
+    const { errors } = run(withOptions(option({ type, default: value })))
+    assert.equal(errors.length, 1, `${type} took ${JSON.stringify(value)}`)
+    assert.match(errors[0], /\/options\/0\/default/)
+    assert.match(errors[0], new RegExp(`is a ${found}|is an ${found}`))
+    assert.match(errors[0], new RegExp(`type is ${type}`))
+  }
+})
+
+test('an option takes no field the schema does not name', () => {
+  const { errors } = run(withOptions(option({ secret: true })))
+  assert.equal(errors.length, 1)
+  assert.match(errors[0], /unknown field: secret/)
+})
+
+test('a Drupal item may name its Composer package and a constraint', () => {
+  for (const composer of [
+    { package: 'drupal/config_pages' },
+    { package: 'drupal/commerce', constraint: '^3.0' },
+  ]) {
+    assert.deepEqual(run(withDrupal({ composer })).errors, [])
+  }
+})
+
+test('a Composer package is written vendor/name', () => {
+  for (const name of ['config_pages', 'Drupal/config_pages', 'drupal/']) {
+    const { errors } = run(withDrupal({ composer: { package: name } }))
+    assert.equal(errors.length, 1, name)
+    assert.match(errors[0], /\/drupal\/0\/composer\/package/)
+  }
+})
+
+test('composer needs a package, and takes nothing else unknown', () => {
+  const missing = run(withDrupal({ composer: { constraint: '^1.0' } }))
+  assert.equal(missing.errors.length, 1)
+  assert.match(missing.errors[0], /\/drupal\/0\/composer is missing package/)
+
+  const unknown = run(
+    withDrupal({ composer: { package: 'drupal/x', version: '1.0.0' } })
+  )
+  assert.equal(unknown.errors.length, 1)
+  assert.match(unknown.errors[0], /unknown field: version/)
+})
+
+test('a core item is accepted, and refuses a Composer package', () => {
+  assert.deepEqual(run(withDrupal({ core: true })).errors, [])
+  assert.deepEqual(
+    run(withDrupal({ core: false, composer: { package: 'drupal/x' } })).errors,
+    []
+  )
+
+  const { errors } = run(
+    withDrupal({ core: true, composer: { package: 'drupal/core' } })
+  )
+  assert.equal(errors.length, 1)
+  assert.match(errors[0], /\/drupal\/0\/composer/)
+  assert.match(errors[0], /core: true/)
+})
+
+test('a Drupal item may list setup steps', () => {
+  const { errors } = run(
+    withDrupal({
+      setup: [
+        { title: 'Generate the keys' },
+        {
+          title: 'Create a consumer',
+          command: 'drush example:command',
+          url: 'https://www.example.com/docs',
+        },
+      ],
+    })
+  )
+  assert.deepEqual(errors, [])
+})
+
+test('a setup step needs a title, and takes nothing unknown', () => {
+  const missing = run(withDrupal({ setup: [{ command: 'drush cr' }] }))
+  assert.equal(missing.errors.length, 1)
+  assert.match(missing.errors[0], /\/drupal\/0\/setup\/0 is missing title/)
+
+  const unknown = run(withDrupal({ setup: [{ title: 'A step', run: true }] }))
+  assert.equal(unknown.errors.length, 1)
+  assert.match(unknown.errors[0], /unknown field: run/)
+})
+
+test('a setup step links to its documentation over https alone', () => {
+  for (const url of ['http://www.example.com/docs', 'ftp://example.com/a']) {
+    const { errors } = run(withDrupal({ setup: [{ title: 'A step', url }] }))
+    assert.equal(errors.length, 1, url)
+    assert.match(errors[0], /\/drupal\/0\/setup\/0\/url/)
+    assert.match(errors[0], /https/)
+  }
+})
+
+const patch = (over = {}) => ({
+  description: 'Resolve includes from the previewed entity',
+  url: 'https://www.example.com/project/-/merge_requests/4.diff',
+  ...over,
+})
+
+test('a Drupal item may list patches, and a core item may too', () => {
+  assert.deepEqual(run(withDrupal({ patches: [patch()] })).errors, [])
+  assert.deepEqual(
+    run(
+      withDrupal({
+        core: true,
+        patches: [
+          patch({
+            package: 'drupal/core',
+            issue: 'https://www.example.com/project/issues/1',
+            until: '11.3.0',
+          }),
+        ],
+      })
+    ).errors,
+    []
+  )
+})
+
+test('a patch needs a description and a url, and takes nothing unknown', () => {
+  for (const field of ['description', 'url']) {
+    const data = patch()
+    delete data[field]
+    const { errors } = run(withDrupal({ patches: [data] }))
+    assert.equal(errors.length, 1, `${field} was not required`)
+    assert.match(
+      errors[0],
+      new RegExp(`/drupal/0/patches/0 is missing ${field}`)
+    )
+  }
+
+  const { errors } = run(withDrupal({ patches: [patch({ sha: 'abc' })] }))
+  assert.equal(errors.length, 1)
+  assert.match(errors[0], /unknown field: sha/)
+})
+
+test('a patch and its issue are linked over https alone', () => {
+  for (const field of ['url', 'issue']) {
+    const { errors } = run(
+      withDrupal({
+        patches: [patch({ [field]: 'http://www.example.com/1.diff' })],
+      })
+    )
+    assert.equal(errors.length, 1, field)
+    assert.match(errors[0], new RegExp(`/drupal/0/patches/0/${field}`))
+    assert.match(errors[0], /https/)
+  }
+})
+
+test('a patch names another package as vendor/name, and until as a version', () => {
+  const named = run(withDrupal({ patches: [patch({ package: 'core' })] }))
+  assert.equal(named.errors.length, 1)
+  assert.match(named.errors[0], /\/drupal\/0\/patches\/0\/package/)
+
+  for (const until of [11, '']) {
+    const { errors } = run(withDrupal({ patches: [patch({ until })] }))
+    assert.equal(errors.length, 1, JSON.stringify(until))
+    assert.match(errors[0], /\/drupal\/0\/patches\/0\/until/)
+  }
+})
+
+// The package pattern once repeated a run of letters inside a repeated group,
+// so a long name with one bad character took seconds to refuse, doubling with
+// each letter. Forty letters would not finish.
+test('a long package name with a bad character is refused at once', () => {
+  const name = `drupal/${'a'.repeat(40)}!`
+  const patch = {
+    description: 'A fix.',
+    url: 'https://example.org/a.patch',
+    package: name,
+  }
+  for (const over of [{ composer: { package: name } }, { patches: [patch] }]) {
+    const started = Date.now()
+    const { errors } = run(withDrupal(over))
+    assert.ok(Date.now() - started < 1000, 'validation should not backtrack')
+    assert.equal(errors.length, 1)
+    assert.match(errors[0], /package/)
+  }
+})
+
+// YAML reads .inf and .nan as numbers, and JSON writes both as null.
+test('a number option whose default is not finite is refused', () => {
+  for (const text of ['.inf', '-.inf', '.nan']) {
+    const { default: value } = parse(`default: ${text}`)
+    const { errors } = run(
+      withOptions(option({ name: 'retries', type: 'number', default: value }))
+    )
+    assert.equal(errors.length, 1, text)
+    assert.match(errors[0], /\/options\/0\/default/)
+    assert.match(errors[0], /finite/)
+  }
+  assert.deepEqual(
+    run(withOptions(option({ name: 'retries', type: 'number', default: 3.5 })))
+      .errors,
+    []
+  )
 })

@@ -9,6 +9,7 @@ drupal:
     label: 'JSON:API Views'
   - name: views
     label: Views
+    core: true
 type: official
 archived: false
 description: Drupal Views components for Druxt with support for filters, pagination and

@@ -60,6 +60,141 @@
             "description": "Written by the sync: the drupal.org project page, where the machine name names a contributed project. Absent for a core subsystem.",
             "type": "string",
             "format": "uri"
+          },
+          "core": {
+            "description": "True where the machine name is a Drupal core subsystem rather than a contributed project. Core ships with Drupal, so there is no package to require and composer is refused beside it.",
+            "type": "boolean"
+          },
+          "composer": {
+            "description": "The Composer package that provides the machine name, where it is not drupal/<name>: a module that ships inside another project. Absent means drupal/<name> with no constraint. Refused on a core item.",
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["package"],
+            "properties": {
+              "package": {
+                "description": "The package, as vendor/name.",
+                "type": "string",
+                "pattern": "^[a-z0-9]+([_.-][a-z0-9]+)*/[a-z0-9]+(([_.]|-{1,2})[a-z0-9]+)*$"
+              },
+              "constraint": {
+                "description": "A Composer version constraint. Absent means none.",
+                "type": "string",
+                "minLength": 1
+              }
+            }
+          },
+          "setup": {
+            "description": "What is left to do once the Drupal module is enabled, in order. A tool prints the steps and does not run them.",
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["title"],
+              "properties": {
+                "title": {
+                  "description": "The step, as one line.",
+                  "type": "string",
+                  "minLength": 1
+                },
+                "command": {
+                  "description": "A command to show for the step.",
+                  "type": "string",
+                  "minLength": 1
+                },
+                "url": {
+                  "description": "The documentation for the step, over https.",
+                  "type": "string",
+                  "format": "uri",
+                  "pattern": "^https://"
+                }
+              }
+            }
+          },
+          "patches": {
+            "description": "Patches the module needs until a fix is released, for a tool to add to a site's composer.json.",
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["description", "url"],
+              "properties": {
+                "description": {
+                  "description": "What the patch fixes, as one line.",
+                  "type": "string",
+                  "minLength": 1
+                },
+                "url": {
+                  "description": "The patch file, over https.",
+                  "type": "string",
+                  "format": "uri",
+                  "pattern": "^https://"
+                },
+                "package": {
+                  "description": "The package the patch applies to, as vendor/name, where that is not the item's own. On a core item this is drupal/core.",
+                  "type": "string",
+                  "pattern": "^[a-z0-9]+([_.-][a-z0-9]+)*/[a-z0-9]+(([_.]|-{1,2})[a-z0-9]+)*$"
+                },
+                "issue": {
+                  "description": "The issue the patch belongs to, over https.",
+                  "type": "string",
+                  "format": "uri",
+                  "pattern": "^https://"
+                },
+                "until": {
+                  "description": "The version of the patched package that contains the fix. A site on that version or later no longer needs the patch.",
+                  "type": "string",
+                  "minLength": 1
+                }
+              }
+            }
+          }
+        },
+        "if": {
+          "required": ["core"],
+          "properties": {
+            "core": {
+              "const": true
+            }
+          }
+        },
+        "then": {
+          "properties": {
+            "composer": false
+          }
+        }
+      }
+    },
+    "options": {
+      "description": "The options the module takes in a site's configuration, for a tool that prompts for them. Names are unique within the entry, and a default has to be of the type the option states.",
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["name", "type", "description"],
+        "properties": {
+          "name": {
+            "description": "The option's key. Dotted for a nested option: proxy.api is the api key of proxy.",
+            "type": "string",
+            "pattern": "^[A-Za-z_$][A-Za-z0-9_$]*(\\.[A-Za-z_$][A-Za-z0-9_$]*)*$"
+          },
+          "type": {
+            "description": "The JSON type of the value.",
+            "enum": ["string", "boolean", "number", "array", "object"]
+          },
+          "description": {
+            "description": "What the option does, as one line.",
+            "type": "string",
+            "minLength": 1
+          },
+          "default": {
+            "description": "The value the module uses when the option is not set. Absent means the module has none."
+          },
+          "required": {
+            "description": "True where the module does not run without the option.",
+            "type": "boolean"
+          },
+          "example": {
+            "description": "A value to show beside a prompt."
           }
         }
       }

@@ -9,6 +9,7 @@ drupal:
     label: 'JSON:API Menu Items'
   - name: menu_link_content
     label: Custom Menu Links
+    core: true
 type: official
 archived: false
 description: Drupal Menu and Menu item Druxt components, with support for the JSON:API Menu

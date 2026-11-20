@@ -58,7 +58,57 @@ function shapeMessage(error, schema) {
   if (error.keyword === 'additionalProperties') {
     return `${at === '/' ? '' : at + ' '}has an unknown field: ${error.params.additionalProperty}`
   }
+  if (error.keyword === 'false schema' && at.endsWith('/composer')) {
+    return `${at} is set on a core: true item. Core ships with Drupal, so there is no package to require. Remove it.`
+  }
   return `${at} ${error.message}`
+}
+
+/** The JSON type of a value, in the words the options schema uses. */
+function jsonType(value) {
+  if (value === null) return 'null'
+  if (Array.isArray(value)) return 'array'
+  return typeof value
+}
+
+/**
+ * The two option rules a schema states badly: a name used once, and a default
+ * of the type the option claims. Both compare one value with another, and the
+ * schema's own wording for that would not name either.
+ */
+function optionErrors(options) {
+  const errors = []
+  const named = new Map()
+
+  options.forEach((option, index) => {
+    if (option === null || typeof option !== 'object') return
+    const at = `/options/${index}`
+
+    if (typeof option.name === 'string') {
+      if (named.has(option.name)) {
+        errors.push(
+          `${at}/name is "${option.name}", already used by /options/${named.get(option.name)}. An option is named once.`
+        )
+      } else named.set(option.name, index)
+    }
+
+    if ('default' in option && typeof option.type === 'string') {
+      const found = jsonType(option.default)
+      if (found !== option.type) {
+        errors.push(
+          `${at}/default is ${found === 'array' || found === 'object' ? 'an' : 'a'} ${found}, but the option's type is ${option.type}`
+        )
+      } else if (found === 'number' && !Number.isFinite(option.default)) {
+        // YAML reads .inf and .nan as numbers, and JSON writes both as null,
+        // so the published default would contradict its type.
+        errors.push(
+          `${at}/default is ${option.default}, which JSON cannot hold. A number option's default is finite.`
+        )
+      }
+    }
+  })
+
+  return errors
 }
 
 export function validate(entries, schema, icons = new Set()) {
@@ -111,8 +161,15 @@ export function validate(entries, schema, icons = new Set()) {
         ) {
           continue
         }
+        // An `if` that fails says only that its `then` did, and the `then`
+        // error beside it is the one that names the field.
+        if (error.keyword === 'if') continue
         fail(shapeMessage(error, schema))
       }
+    }
+
+    if (Array.isArray(entry.data.options)) {
+      for (const message of optionErrors(entry.data.options)) fail(message)
     }
 
     if (entry.data.name && entry.data.name !== entry.key) {

@@ -21,6 +21,7 @@ dbaeumer
 DDEV
 devcontainer
 devcontainers
+drush
 druxt
 Druxt
 druxtjs

@@ -6,6 +6,7 @@ icon: ckeditor.svg
 drupal:
   - name: ckeditor5
     label: 'CKEditor 5'
+    core: true
 type: contrib
 archived: false
 description: Mounts the CKEditor 5 build Drupal ships in a Druxt frontend.
