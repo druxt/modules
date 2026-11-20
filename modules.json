@@ -120,6 +120,44 @@
       "website": "https://github.com/druxt/druxt.js"
     },
     {
+      "name": "canvas",
+      "repo": "druxt-contrib/druxt-canvas",
+      "category": "site-and-layout",
+      "status": "stable",
+      "icon": "canvas.svg",
+      "drupal": [
+        {
+          "name": "canvas",
+          "label": "Drupal Canvas",
+          "setup": [
+            {
+              "title": "Give the role your site reads as access content and access druxt resources, and never the Canvas page create, edit or delete permissions, which read unpublished pages",
+              "url": "https://github.com/druxt-contrib/druxt-canvas/blob/0.x/docs/drupal-setup.md#permissions"
+            }
+          ],
+          "patches": [
+            {
+              "description": "Canvas 1.12.0 answers HTTP 500 to a page[offset] on a collection of configuration entities, which stops the Druxt build",
+              "url": "https://raw.githubusercontent.com/druxt-contrib/druxt-canvas/0.x/example/drupal/patches/canvas-3592360-config-entity-query-offset.patch",
+              "issue": "https://git.drupalcode.org/project/canvas/-/work_items/3592360"
+            }
+          ]
+        },
+        {
+          "name": "metatag",
+          "label": "Metatag"
+        }
+      ],
+      "type": "contrib",
+      "archived": false,
+      "description": "Renders Drupal Canvas pages in a Druxt site, from Drupal's JSON:API.",
+      "npm": "@druxt-contrib/canvas",
+      "compatibility": {
+        "druxt": ">=0.25.1 <1"
+      },
+      "website": "https://github.com/druxt-contrib/druxt-canvas"
+    },
+    {
       "name": "ckeditor",
       "repo": "druxt-contrib/druxt-ckeditor",
       "category": "authoring-and-preview",

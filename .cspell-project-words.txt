@@ -50,6 +50,8 @@ libzip
 Licence
 lndo
 markdownlint
+metatag
+Metatag
 mise
 networkidle
 nproc
