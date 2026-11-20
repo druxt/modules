@@ -125,6 +125,7 @@
       "category": "site-and-layout",
       "status": "stable",
       "icon": "canvas.svg",
+      "website": "https://contrib.druxtjs.org/druxt-canvas/",
       "drupal": [
         {
           "name": "canvas",
@@ -154,8 +155,7 @@
       "npm": "@druxt-contrib/canvas",
       "compatibility": {
         "druxt": ">=0.25.1 <1"
-      },
-      "website": "https://github.com/druxt-contrib/druxt-canvas"
+      }
     },
     {
       "name": "ckeditor",
@@ -338,6 +338,7 @@
       "category": "authoring-and-preview",
       "status": "stable",
       "icon": "node-preview.svg",
+      "website": "https://contrib.druxtjs.org/druxt-node-preview/",
       "drupal": [
         {
           "name": "jsonapi_node_preview",
@@ -354,8 +355,7 @@
       "npm": "@druxt-contrib/node-preview",
       "compatibility": {
         "druxt": ">=0.25.0 <1"
-      },
-      "website": "https://github.com/druxt-contrib/druxt-node-preview"
+      }
     },
     {
       "name": "router",
